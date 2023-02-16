@@ -85,7 +85,8 @@ CONST_CHAR:
 		'\\\'' |
 		[\u0020-\u0026] |
 		[\u0028-\u007E] |
-		('\'' { LexError("Empty char constant"); })
+		('\'' { LexError("Empty char constant"); }) |
+		. { LexError(String.format("Unexpected symbol [%c] inside char constant", _input.LA(-1))); }
 	)
 	(
 		'\'' |
@@ -100,7 +101,8 @@ CONST_STR :
 	)*
 	(
 		'"' |
-		{ LexError("Expected end of string"); }
+		('\n' | EOF ) { LexError("Expected end of string"); } |
+		. { LexError(String.format("Unexpected symbol [%c] inside string constant", _input.LA(-1))); }
 	) ;
 
 ID
