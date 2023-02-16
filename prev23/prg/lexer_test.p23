@@ -1,0 +1,68 @@
+# Comment #
+             # White space
+    # Prazno besedilo
+
+#
+
+
+# Symbols
+( ) { } [ ] . , : ; & | ! == != < > <= >= * / % + - ^ =
+.
+====
+.
+=====
+.
+<=<=<=
+.
+<=>
+
+# Keywords
+bool char del do else fun if in int let new then typ var void while
+
+# Constant
+none true false nil
+
+# Int
+0 1 10 9999999 -10 +13 1234567890
+# Napake
+#00
+#000
+#0123
+#000123
+#01
+#0100
+
+
+# char
+'a' '$' '#' '"' ' ' '\''
+# Napake
+#'' # Prazen char
+#'asd' # Prevelik char
+#'\n' # Prevelik char
+#' # Nekoncan char
+#'a" Napacen konec
+
+# string
+"" "str str" "str # str #" "str \" str \"" "\"" "''''''''" " \\"  " " \'"
+# Napake
+#" # Nekoncan str
+#"str\" # Nekoncan str
+#"str str # Nekoncan str
+#""" # Nekoncan str
+
+
+# Identifiers
+foo
+foo1
+_f_0_0_1
+boolbool
+while_1_whiledo
+#1fabcd # [INT][ID]
+#000asd
+#001bool
+
+# Napake
+#$ # Undefined symbol
+#@ # Undefined symbol
+
+:-)
