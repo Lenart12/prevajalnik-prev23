@@ -1,9 +1,22 @@
 # Comment #
-             # White space
+        	# White space
     # Prazno besedilo
 
 #
 
+# Tabs
+# :-( [x.9 - x.15] Invalid char constant ['tabx']
+#	'tab0'
+# 	'tab1'
+#  	'tab2'
+#   	'tab3'
+#    	'tab4'
+#     	'tab5'
+#      	'tab6'
+#       	'tab7'
+# :-( [x.17 - x.23] Invalid char constant ['tabx']
+#        	'tab8'
+#         	'tab9'
 
 # Symbols
 ( ) { } [ ] . , : ; & | ! == != < > <= >= * / % + - ^ =

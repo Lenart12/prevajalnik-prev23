@@ -12,11 +12,13 @@ lexer grammar PrevLexer;
 		return (Token) super.nextToken();
 	}
 
+	private int tab_offset = 0;
+
 	private void LexError(String message) {
 		throw new Report.Error(
 			new Location(
-				_tokenStartLine, _tokenStartCharPositionInLine + 1,
-				getLine(), getCharPositionInLine() + 1),
+				_tokenStartLine, _tokenStartCharPositionInLine + tab_offset + 1,
+				getLine(), getCharPositionInLine() + tab_offset + 1),
 			String.format("%s [%s]", message, getText())
 		);
 	}
@@ -106,7 +108,9 @@ ID
 	| [a-zA-Z_]+[a-zA-Z0-9_]* ;
 
 // Ignored
-WS     : [ \n\r\t] -> skip ;
+WS     : [ \r] -> skip ;
+NL : [\n] { tab_offset = 0; } ->skip ;
+TAB : [\t] { tab_offset += 7 - (_tokenStartCharPositionInLine % 8); } -> skip ;
 COMMENT: '#' .*? ('\n' | EOF) -> skip ;
 
 ERROR  : . { LexError("Undefined symbol or token"); } -> skip;
