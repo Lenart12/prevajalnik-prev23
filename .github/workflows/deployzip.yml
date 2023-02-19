@@ -1,0 +1,43 @@
+name: Create .ZIP release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ReleaseVersion:
+        description: 'Release version'
+        default: 'v0.X.X'
+        required: true
+      ReleaseDesciption:
+        description: 'Release description'
+        default: ''
+        required: false
+      StudentId:
+        description: 'Student ID'
+        default: '63200XXX'
+        required: true
+      ZipName:
+        description: 'Zip name (StudentId-ZipName.zip)'
+        default: 'lexan'
+
+jobs:
+  deployzip:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      ZipFilename: "${{ github.event.inputs.StudentId }}-${{ github.event.inputs.ZipName }}.zip"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Create zip
+        run: bash create_zip.sh "$ZipFilename"
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag_name: ${{ github.event.inputs.ReleaseVersion }}
+          name: RELEASE-${{ github.event.inputs.ReleaseVersion }}
+          body: ${{ github.event.inputs.ReleaseDesciption }}
+          prerelease: false
+          draft: false
+          files: |
+            ${{ env.ZipFilename }}
