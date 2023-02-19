@@ -17,6 +17,7 @@
 # :-( [x.17 - x.23] Invalid char constant ['tabx']
 #        	'tab8'
 #         	'tab9'
+#	:-)	'tab10'
 
 # Symbols
 ( ) { } [ ] . , : ; & | ! == != < > <= >= * / % + - ^ =
@@ -55,6 +56,7 @@ none true false nil
 #' # Nekoncan char
 #'a" # Napacen konec
 #'	' # Nedovoljen vsebovan znak
+#'	 # Nedovoljen vsebovan in nezakljucen
 
 # string
 "" "str str" "str # str #" "str \" str \"" "\"" "''''''''" " \\"  " " \'"

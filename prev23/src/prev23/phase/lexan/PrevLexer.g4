@@ -86,7 +86,8 @@ CONST_CHAR:
 		[\u0020-\u0026] |
 		[\u0028-\u007E] |
 		('\'' { LexError("Empty char constant"); }) |
-		. { LexError(String.format("Unexpected symbol [%c] inside char constant", _input.LA(-1))); }
+		. '\'' { LexError(String.format("Unexpected symbol [%c] inside char constant", _input.LA(-2))); } |
+		.
 	)
 	(
 		'\'' |
@@ -112,7 +113,7 @@ ID
 // Ignored
 WS     : [ \r] -> skip ;
 NL : [\n] { tab_offset = 0; } ->skip ;
-TAB : [\t] { tab_offset += 7 - (_tokenStartCharPositionInLine % 8); } -> skip ;
+TAB : [\t] { tab_offset += 7 - ((tab_offset + _tokenStartCharPositionInLine) % 8); } -> skip ;
 COMMENT: '#' .*? ('\n' | EOF) -> skip ;
 
 ERROR  : . { LexError("Undefined symbol or token"); } -> skip;
