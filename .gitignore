@@ -25,6 +25,8 @@ hs_err_pid*
 # test
 **/*.lexan.html
 **/*.lexan.xml
+**/*.synan.html
+**/*.synan.xml
 
 # antlr
 **/PrevLexer.tokens

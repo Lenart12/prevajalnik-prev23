@@ -1,0 +1,19 @@
+# Declarations
+
+typ foo = char;
+#typ baz = (^[10] (^(int)));
+typ bar = void, foo2 = {
+    prop1 : {
+        prop11 : char
+    },
+    prop2 : ( ^ foo )
+} ;
+
+fun prazen_klic() : int = foo();
+fun klic_en_argument() : int = foo(1);
+fun klic_vec_argumentov() : int = foo(1, 2);
+
+fun dangling_else() : int = if 0 then if 1 then 2 else 3;
+
+fun new_plus() : int = new (int) + new (int);
+fun plus_krat() : int = n1 + n2 * n3 + n4;
