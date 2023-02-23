@@ -106,9 +106,7 @@ CONST_STR :
 		. { LexError(String.format("Unexpected symbol [%c] inside string constant", _input.LA(-1))); }
 	) ;
 
-ID
-	: [0-9]+ [a-zA-Z_0-9]+ { LexError("Identifier cannot start with a number"); }
-	| [a-zA-Z_]+[a-zA-Z0-9_]* ;
+ID : [a-zA-Z_]+[a-zA-Z0-9_]* ;
 
 // Ignored
 WS     : [ \r] -> skip ;
