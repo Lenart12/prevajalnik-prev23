@@ -30,3 +30,7 @@ hs_err_pid*
 **/PrevLexer.tokens
 **/PrevLexer.java
 **/PrevLexer.interp
+
+**/PrevParser.tokens
+**/PrevParser.java
+**/PrevParser.interp

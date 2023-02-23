@@ -4,6 +4,7 @@ import java.util.*;
 
 import prev23.common.report.*;
 import prev23.phase.lexan.*;
+import prev23.phase.synan.*;
 
 /**
  * The compiler.
@@ -40,7 +41,7 @@ public class Compiler {
 	// COMMAND LINE ARGUMENTS
 	
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan";
+	private static final String phases = "none|lexan|synan";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
@@ -109,6 +110,14 @@ public class Compiler {
 						}
 						break;
 					}
+				
+				// Syntax analysis.
+				try (LexAn lexan = new LexAn(); SynAn synan = new SynAn(lexan)) {
+					SynAn.tree = synan.parser.source();
+					synan.log(SynAn.tree);
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("synan"))
+					break;
 
 			}
 
