@@ -1,0 +1,52 @@
+# Declarations
+
+typ foo = char;
+#typ baz = (^[10] (^(int)));
+typ bar = void, foo2 = {
+    prop1 : {
+        prop11 : char
+    },
+    prop2 : ( ^ foo )
+} ;
+
+fun prazen_klic() : int = foo();
+fun klic_en_argument() : int = foo(1);
+fun klic_vec_argumentov() : int = foo(1, 2);
+fun f1():void = let fun f2():void = let fun f3():void ; in bar1 ; in bar2;
+
+fun dangling_else() : int = if 0 then if 1 then 2 else 3;
+
+fun new_plus() : int = new (int) + new (int);
+fun plus_krat() : int = n1 + n2 * n3 + n4;
+
+typ t1 = int, t2 = void, t3 = [10]char, t4 = ^bool, t5 = (foo) ;
+
+fun f1() : void, f2() : void, f3() : void;
+fun f1(t1: int, t2: void, t3: {i1: int, i2: void}) : void , f2() : void;
+
+var v1: (bool), v2: foo ;
+
+fun main(argc: int, argv: ^^char) : int = {
+    10 ;
+    id ;
+    id () ;
+    f1 (10, "123", '2') ;
+    foo.bar[10]^ ;
+    (nil : ^char) ;
+    a | b & c != d + e * +f / -g.x[10] ;
+    -g.x[10] / +f * e + d != c & b | a ;
+    foo = new (char) ;
+    (foo : int) ;
+    del (foo) ;
+    if a == b then "foo" else "bar";
+    if true then {
+        while ^p != 0 do p = p + 1 
+    } else if false then {
+        noop
+    } ;
+
+    let var v1 : ^int, v2: ^void ; in while v1^ % v2 do {
+        del (v2^)
+    } 
+
+} ;

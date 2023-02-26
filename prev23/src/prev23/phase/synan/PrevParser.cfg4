@@ -1,0 +1,92 @@
+# https://mdaines.github.io/grammophone/#/
+
+# Declarations
+decl -> some_decl decl | .
+some_decl -> type_decl | fun_decl | var_decl.
+
+# Type declarations
+type_decl -> typ type_decl' ; .
+type_decl' -> type_def type_decl'' .
+type_decl'' -> , type_decl' | .
+type_def -> id = type .
+
+# Function declarations
+fun_decl -> fun fun_decl' ; .
+fun_decl' -> fun_def fun_decl''.
+fun_decl'' -> fun_decl' | .
+
+fun_def -> id ( fun_args ) : fun_body .
+fun_args -> fun_args' | .
+fun_args' -> fun_args_def fun_args'' .
+fun_args'' -> , fun_args' | .
+fun_arg_def -> id : type .
+fun_body -> type fun_body' .
+fun_body' -> = statement | .
+
+# Variable declarations
+var_decl -> var var_decl' ; .
+var_decl' -> var_def var_decl'' .
+var_decl'' -> , var_decl' | .
+var_def -> id : type .
+
+# Type
+type -> raw_type | expr_type | ^ type | struct_type | ( type ) .
+raw_type -> void | char | int | bool | id .
+expr_type -> [ expr ] type .
+struct_type -> { struct_types } .
+struct_types -> struct_type_def struct_types' .
+struct_types' -> , struct_type_def struct_types' | .
+struct_type_def -> id : type .
+
+# Expression
+expr -> disjunctive_expr .
+
+disjunctive_expr -> conjunctive_expr disjunctive_expr' .
+disjunctive_expr' -> disjunctive_op conjunctive_expr disjunctive_expr' | .
+
+conjunctive_expr -> relational_expr conjunctive_expr' .
+conjunctive_expr' -> conjunctive_op relational_expr conjunctive_expr' | .
+
+relational_expr -> additivie_expr relational_expr' .
+relational_expr' -> relational_op additivie_expr relational_expr' | .
+
+additivie_expr -> multiplicative_expr additivie_expr' . 
+additivie_expr' -> additive_op multiplicative_expr  additivie_expr' | .
+
+multiplicative_expr -> prefix_expr multiplicative_expr' .
+multiplicative_expr' -> multiplicative_op prefix_expr multiplicative_expr' | .
+
+prefix_expr -> prefix_expr' postfix_expr .
+prefix_expr' -> prefix_op prefix_expr' | .
+
+postfix_expr -> primary_expr postfix_expr' .
+postfix_expr' -> postfix_op postfix_expr' | .
+
+primary_expr -> const_expr | id | ( expr ) .
+const_expr -> const_int | const_char | const_str .
+
+# Statement
+statement -> assign_statement | if_statement | while_statement | let_statement | block_statement.
+
+assign_statement -> expr assign_statement' .
+assign_statement' -> = expr | .
+
+if_statement -> if expr then statement if_statement' .
+if_statement' -> else statement .
+
+while_statement -> while expr do statement .
+
+let_statement -> let expr in statement .
+
+block_statement -> { statement block_statement' } .
+block_statement' -> ; statement block_statement' | .
+
+# Opreators
+disjunctive_op -> OR .
+conjunctive_op -> & .
+relational_op -> == | != | < | > | <= | >= .
+additive_op -> + | - .
+multiplicative_op -> * | / | % .
+prefix_op -> ! | + | - | ^ .
+postfix_op -> [ expr ] | ^ | DOT id .
+
