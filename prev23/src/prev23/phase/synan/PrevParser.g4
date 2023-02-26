@@ -30,7 +30,7 @@ type_ass : ID ASS type ;
 // Function declarations
 fun_decl : FUN fun_decl1 SEMI ;
 fun_decl1 : fun_def fun_decl2 ;
-fun_decl2 : fun_def fun_decl2 | ;
+fun_decl2 : COMMA fun_def fun_decl2 | ;
 
 fun_def : ID LPAR fun_args RPAR COLON fun_body ;
 fun_args : fun_args1 | ;
