@@ -1,43 +1,33 @@
 name: Create .ZIP release
 
 on:
-  workflow_dispatch:
-    inputs:
-      ReleaseVersion:
-        description: 'Release version'
-        default: 'v0.X.X'
-        required: true
-      ReleaseDesciption:
-        description: 'Release description'
-        default: ''
-        required: false
-      StudentId:
-        description: 'Student ID'
-        default: '63200XXX'
-        required: true
-      ZipName:
-        description: 'Zip name (StudentId-ZipName.zip)'
-        default: 'lexan'
+  push:
+    tags:
+      - "v*.*.*-*"
 
 jobs:
   deployzip:
     permissions: write-all
     runs-on: ubuntu-latest
-    env:
-      ZipFilename: "${{ github.event.inputs.StudentId }}-${{ github.event.inputs.ZipName }}.zip"
     steps:
+      - name: Setup enviroment
+        run: |
+          VERSION=$(echo ${{ github.ref_name }} | sed 's/-.*$//')
+          RELEASE_NAME=$(echo ${{ github.ref_name }} | sed 's/^.*-//')
+          ZIP_NAME=${{ secrets.STUDENTID }}-$RELEASE_NAME.zip
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Create zip
-        run: bash create_zip.sh "$ZipFilename"
+        run: bash create_zip.sh "$ZIP_NAME"
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          token: "${{ secrets.GITHUB_TOKEN }}"
-          tag_name: ${{ github.event.inputs.ReleaseVersion }}
-          name: RELEASE-${{ github.event.inputs.ReleaseVersion }}
-          body: ${{ github.event.inputs.ReleaseDesciption }}
+          name: RELEASE-${{ env.VERSION }}
           prerelease: false
           draft: false
           files: |
-            ${{ env.ZipFilename }}
+            ${{ env.ZIP_NAME }}
+
