@@ -100,7 +100,7 @@ if_statement1 : statement | statement ELSE statement ;
 
 while_statement : WHILE expr DO statement ;
 
-let_statement : LET expr IN statement ;
+let_statement : LET decl IN statement ;
 
 block_statement : LCURLY statement block_statement1 RCURLY ;
 block_statement1 : SEMI statement block_statement1 | ;
