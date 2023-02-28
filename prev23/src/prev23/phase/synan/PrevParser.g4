@@ -65,7 +65,7 @@ conjunctive_expr : relational_expr conjunctive_expr1 ;
 conjunctive_expr1 : conjunctive_op relational_expr conjunctive_expr1 | ;
 
 relational_expr : additive_expr relational_expr1 ;
-relational_expr1 : relational_op additive_expr relational_expr1 | ;
+relational_expr1 : relational_op additive_expr | ;
 
 additive_expr : multiplicative_expr additive_expr1 ; 
 additive_expr1 : additive_op multiplicative_expr  additive_expr1 | ;
