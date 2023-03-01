@@ -7,13 +7,6 @@ package prev23.common.report;
  */
 public class Report {
 
-	/**
-	 * (Unused but included to keep javadoc happy.)
-	 */
-	private Report() {
-		throw new Report.InternalError();
-	}
-
 	/** Counter of information messages printed out. */
 	private static int numOfInfos = 0;
 
