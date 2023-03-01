@@ -88,7 +88,7 @@ id_expr2 : expr id_expr3 | ;
 id_expr3 : COMMA expr id_expr3 | ;
 mem_expr : NEW LPAR type RPAR | DEL LPAR expr RPAR; 
 cast_expr : LPAR expr cast_expr1 RPAR ;
-cast_expr1 : COLON type ;
+cast_expr1 : COLON type | ;
 
 // Statement
 statement : assign_statement | if_statement | while_statement | let_statement | block_statement;

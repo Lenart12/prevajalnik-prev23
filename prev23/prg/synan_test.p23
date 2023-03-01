@@ -30,8 +30,9 @@ fun main(argc: int, argv: ^^char) : int = {
     10 ;
     id ;
     id () ;
-    f1 (10, "123", '2') ;
+    foo.bar = f1 (10, "123", '2') ;
     foo.bar[10]^ ;
+    (nil) ;
     (nil : ^char) ;
     a | b & c != d + e * +f / -g.x[10] ;
     -g.x[10] / +f * e + d != c & b | a ;
