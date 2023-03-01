@@ -15,10 +15,11 @@ options{
     tokenVocab=PrevLexer;
 }
 
-source : decl ;
+source : decl EOF;
 
 // Declarations
-decl : some_decl decl | ;
+decl : some_decl decl1;
+decl1 : some_decl decl1 | ;
 some_decl : type_decl | fun_decl | var_decl ;
 
 // Type declarations
