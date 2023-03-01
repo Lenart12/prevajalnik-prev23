@@ -31,6 +31,7 @@ public class SynAn extends Phase {
 				switch (rule_name) {
 					case "source":
 					case "decl":
+					case "decl1":
 					case "some_decl":
 						return "";
 					case "type_decl":
@@ -134,7 +135,7 @@ public class SynAn extends Phase {
 		
 			private String get_parse_stack(PrevParser parser) {
 				String last_context = "";
-				StringBuilder sb = new StringBuilder("Parse stack:\n");
+				StringBuilder sb = new StringBuilder();
 				for (final var rule : parser.getRuleInvocationStack()) {
 					final var rule_context = error_context(rule);
 		
@@ -143,8 +144,20 @@ public class SynAn extends Phase {
 						sb.append(String.format(" - %s%n", rule_context));
 					}
 				}
+				if (!sb.isEmpty()) sb.insert(0, "Parse stack:\n");
 				return sb.toString();
-			} 
+			}
+
+			private String get_top_stack(PrevParser parser) {
+				for (final var rule : parser.getRuleInvocationStack()) {
+					final var rule_context = error_context(rule);
+		
+					if (rule_context.length() > 0) {
+						return rule_context;
+					}
+				}
+				return "source code";
+			}
 		
 			private void ParseError(PrevParser parser) {
 				final var token = parser.getCurrentToken();
@@ -156,7 +169,7 @@ public class SynAn extends Phase {
 						token.getLine(), token.getCharPositionInLine() + text.length() - 1),
 					String.format(
 						"Unexpected token [%s] while parsing %s\n%sExpected one of: %s",
-						text, error_context(parser.getRuleInvocationStack().get(0)), get_parse_stack(parser),
+						text, get_top_stack(parser), get_parse_stack(parser),
 						parser.getExpectedTokens().toString(parser.getVocabulary())
 					)
 				);
