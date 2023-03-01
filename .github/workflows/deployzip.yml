@@ -22,6 +22,15 @@ jobs:
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '19'
+      - name: Download antlr4
+        run: wget -Oprev23/lib/antlr-4.11.1-complete.jar https://github.com/antlr/website-antlr4/raw/gh-pages/download/antlr-4.11.1-complete.jar
+      - name: Compile project
+        run: make -C prev23
       - name: Create zip
         run: bash create_zip.sh "$ZIP_NAME"
       - name: Upload zip
@@ -34,4 +43,5 @@ jobs:
           draft: false
           files: |
             ${{ env.ZIP_NAME }}
+            prev23/
 
