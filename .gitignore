@@ -27,6 +27,8 @@ hs_err_pid*
 **/*.lexan.xml
 **/*.synan.html
 **/*.synan.xml
+**/*.abstr.html
+**/*.abstr.xml
 
 # antlr
 **/PrevLexer.tokens
