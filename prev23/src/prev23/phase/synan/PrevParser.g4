@@ -8,14 +8,16 @@ parser grammar PrevParser;
 	
 	import prev23.common.report.*;
 	import prev23.phase.lexan.*;
-	
+	import prev23.data.ast.tree.*;
+	import prev23.data.ast.tree.decl.*;
 }
 
 options{
     tokenVocab=PrevLexer;
 }
 
-source : decl EOF;
+source returns [AstTrees<AstTrees<AstDecl>> ast] 
+	: decl EOF;
 
 // Declarations
 decl : some_decl decl1;
