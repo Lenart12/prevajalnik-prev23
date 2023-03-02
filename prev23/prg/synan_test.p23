@@ -50,8 +50,8 @@ fun main(argc: int, argv: ^^char) : int = {
     # 1 > 2 + 3 > 4 ; # Napaka 
     1 > 2 & 3 > 4 ; 
 
-    let var v1 : ^int, v2: ^void ; in while v1^ % v2 do {
-        del (v2^)
+    let var v1 : ^int, v2: ^void ; fun do_foo():int; in while v1^ % v2 do {
+        del (do_foo(v2^))
     } 
 
 } ;

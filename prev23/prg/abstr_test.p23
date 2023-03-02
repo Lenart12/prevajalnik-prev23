@@ -1,0 +1,8 @@
+typ a = int, b = int;
+typ c = int;
+
+var a : int, b : int;
+var c : int;
+
+fun f1() : int = foo, f2(a: int, b: int) : void;
+fun f3() : void;
