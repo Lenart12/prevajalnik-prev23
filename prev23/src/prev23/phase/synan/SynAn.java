@@ -53,7 +53,6 @@ public class SynAn extends Phase {
 					case "fun_args_def": 
 						return "function arguments definition";
 					case "fun_body": 
-					case "fun_body1":
 						return "function body";
 					case "var_decl": 
 					case "var_decl1": 
@@ -67,12 +66,12 @@ public class SynAn extends Phase {
 						return "raw type";
 					case "expr_type":
 						return "expression type";
-					case "struct_type": 
-					case "struct_types": 
-					case "struct_types1": 
-						return "struct type";
-					case "struct_type_def": 
-						return "struct type definition";
+					case "record_type": 
+					case "record_types": 
+					case "record_types1": 
+						return "record type";
+					case "record_type_def": 
+						return "record type definition";
 					case "expr": 
 					case "disjunctive_expr": 
 					case "disjunctive_expr1": 
@@ -85,7 +84,6 @@ public class SynAn extends Phase {
 					case "multiplicative_expr": 
 					case "multiplicative_expr1": 
 					case "prefix_expr": 
-					case "prefix_expr1": 
 					case "postfix_expr": 
 					case "postfix_expr1": 
 					case "primary_expr": 
