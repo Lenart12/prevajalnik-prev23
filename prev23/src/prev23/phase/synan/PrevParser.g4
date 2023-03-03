@@ -28,27 +28,18 @@ parser grammar PrevParser;
         LinkedList<T> target = nv();
         return av(target, one_item, more);
     }
-    private Location l(Token that) {
-        return new Location((prev23.data.sym.Token)that);
+    private Location l(Object that) {
+        Locatable l_that = (that instanceof Token) ? (prev23.data.sym.Token)that : (Locatable)that;
+        return new Location(l_that);
     }
-    private Location l(Locatable that) {
-        return new Location(that);
+    private Location l(Object lhs, Object rhs) {
+        Locatable l_lhs = null, l_rhs = null;
+        l_lhs = (lhs instanceof Token) ? (prev23.data.sym.Token)lhs : (Locatable)lhs;
+        l_rhs = (rhs instanceof Token) ? (prev23.data.sym.Token)rhs : (Locatable)rhs;
+        return new Location(l_lhs, l_rhs);
     }
-    private Location l(Locatable lhs, Locatable rhs) {
-        return new Location(lhs, rhs);
-    }
-    private Location l(Token lhs, Token rhs) {
-        return new Location((prev23.data.sym.Token)lhs, (prev23.data.sym.Token)rhs);
-    }
-    private Location l(Locatable lhs, Token rhs) {
-        return new Location(lhs, (prev23.data.sym.Token)rhs);
-    }
-    private Location l(Token lhs, Locatable rhs) {
-        return new Location((prev23.data.sym.Token)lhs, rhs);
-    }
-    private Location l(Token lhs, Locatable rhs, Locatable ohs) {
-        if (ohs != null ) return new Location((prev23.data.sym.Token)lhs, ohs);
-        return new Location((prev23.data.sym.Token)lhs, rhs);
+    private Location l(Object lhs, Object rhs, Object ohs) {
+        return (ohs == null) ? l(lhs, rhs) : l(lhs, ohs);
     }
 }
 

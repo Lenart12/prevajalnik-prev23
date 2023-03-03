@@ -127,7 +127,7 @@ fun main(argc: int, argv: ^^char) : int = {
     in bar2;
     let
         var v1:void, v2:int, v3:char;
-        typ t1=void, t2=intm t2=char;
+        typ t1=void, t2=int, t2=char;
         fun f1():void, f2():int, f3():char;
     in v;
 
