@@ -1,41 +1,140 @@
-# Declarations
-
-typ foo = char;
-#typ baz = (^[10] (^(int)));
-typ bar = void, foo2 = {
-    prop1 : {
-        prop11 : char
-    },
-    prop2 : ( ^ foo )
-} ;
-
-fun prazen_klic() : int = foo();
-fun klic_en_argument() : int = foo(1);
-fun klic_vec_argumentov() : int = foo(1, 2);
-fun f1():void = let fun f2():void = let fun f3():void ; in bar1 ; in bar2;
-
-fun dangling_else() : int = if 0 then if 1 then 2 else 3;
-
-fun new_plus() : int = new (int) + new (int);
-fun plus_krat() : int = n1 + n2 * n3 + n4;
-
-typ t1 = int, t2 = void, t3 = [10]char, t4 = ^bool, t5 = (foo) ;
-
-fun f1() : void, f2() : void, f3() : void;
+# Types
+typ t1 = void;
+typ t2 = void, t2 = int;
+typ t1 = void, t2 = int, t3 = char;
+# Variables
+var v1: void;
+var v1: void, v2: int;
+var v1: void, v2: int, v3: char;
+# Functions
+fun f1(): void;
+fun f1(): void, f2(): int;
+fun f1(): void, f2(): int, f3(): char;
+# Parameters
+fun f1(p1: void): void = p1,
+    f2(p1: void, p2: int): int = p1 + p2,
+    f3(p1: void, p2: int, p3: char): char = p1 + p2 + p3;
+fun f1(): void, f2(): int = p1;
 fun f1(t1: int, t2: void, t3: {i1: int, i2: void}) : void , f2() : void;
 
-var v1: (bool), v2: foo ;
+# Types
+typ bar = void, foo2 = {
+    prop1 : {
+        p1 : void,
+        p2 : int,
+        p3 : char
+    },
+    prop2 : ( ^ foo )
+};
+typ 
+    t_void = void,
+    t_char = char,
+    t_int = int,
+    t_bool = bool,
+    t_name = foo,
+    t_arr = [0]void,
+    t_ptr = ^void,
+    t_rec1 = {
+        t_rec1: void
+    },
+    t_rec2 = {
+        t_rec1: void,
+        t_rec2: int,
+        t_rec3: char
+    },
+    t_rec3 = {t_rec3_:{t_rec3__:{t_rec3__:void}}},
+    t_par = (void),
+    t_mix = (^[0]^({foo:bar}));
 
 fun main(argc: int, argv: ^^char) : int = {
-    10 ;
-    id ;
-    id () ;
+    # Constants
+    #
+    10;
+    # Comment
+    none; # Comment
+#    true;
+    true;
+    false;
+    nil;
+    123456789;
+    +123;
+    -123;
+    "lorem ipsum dolor sit amet\\"";
+    'l';
+    '\'';
+    nil;
+    # Expr call
+    _id ;
+    foo();
+    foo(1);
+    foo(1,2);
+    foo(1,2,3);
+    # Postfix
+    true[0];
+    true^;
+    true.png;
+    true[0]^.png^;
+    # Prefix(Unary)
+    !nil;
+    +nil;
+    -nil;
+    ^nil;
+    !+-^nil;
+    # Binary
+    OR|b;
+    AND&b;
+    EQU==b;
+    NEQ!=b;
+    LTH<b;
+    GTH>b;
+    LEQ<=b;
+    GEQ>=b;
+    MUL*b;
+    DIV/b;
+    MOD%b;
+    ADD+b;
+    SUB-b;
+    (^a | b^ & c != !d + -e * +f / -g.x[10]: int);
+    (-g.x[10] / +f * -e + !d != c & b^ | ^a: int);
+    # Cast
+    (nil);
+    (nil : [(nil: char)]char);
+    # New
+    new (void);
+    new ({a: [new(int)]int});
+    # Del
+    del(0);
+    del(((0)));
+    del(del(del(del(0))));
+    # Assign
+    a = b;
+    a = (b: int);
+    # if
+    if a then b;
+    if a then b else c;
+    if a then if b then c else d;
+    # While
+    while a do b;
+    while a do if b then c else d;
+    while a do while b do while c do d;
+    # Let
+    let var v1:int; in v;
+    let
+        fun f2():void =
+        let
+            fun f3():void ;
+        in bar1;
+    in bar2;
+    let
+        var v1:void, v2:int, v3:char;
+        typ t1=void, t2=intm t2=char;
+        fun f1():void, f2():int, f3():char;
+    in v;
+
+    # Misc
     foo.bar = f1 (10, "123", '2') ;
+    new (int) + new (int);
     !+-foo.bar[10]^^^^ ;
-    (nil) ;
-    (nil : ^char) ;
-    a | b & c != d + e * +f / -g.x[10] ;
-    -g.x[10] / +f * e + d != c & b | a ;
     foo = new (char) ;
     (foo : int) ;
     del (foo) ;
@@ -44,14 +143,10 @@ fun main(argc: int, argv: ^^char) : int = {
         while ^p != 0 do p = p + 1 
     } else if false then {
         noop
-    } ;
-
-
-    # 1 > 2 + 3 > 4 ; # Napaka 
-    1 > 2 & 3 > 4 ; 
-
+    };
     let var v1 : ^int, v2: ^void ; fun do_foo():int; in while v1^ % v2 do {
         del (do_foo(v2^))
-    } 
-
-} ;
+    };
+    # 1 > 2 + 3 > 4 # Napaka 
+    1 > 2 & 3 > 4
+};
