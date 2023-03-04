@@ -1,6 +1,9 @@
 # Compiled class file
 *.class
 
+# Build folder
+prev23/bin
+
 # Log file
 *.log
 

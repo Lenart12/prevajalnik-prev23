@@ -16,23 +16,39 @@ jobs:
           SUBMISSION_ID=$(echo ${{ vars.SUBMISSION }} | sed 's/-.*$//')
           RELEASE_NAME=$(echo ${{ vars.SUBMISSION }} | sed 's/^.*-//')
           ZIP_NAME=${{ secrets.STUDENTID }}-$RELEASE_NAME.zip
+          JAR_NAME=prev23-${{ github.ref_name }}.jar
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "SUBMISSION_ID=$SUBMISSION_ID" >> $GITHUB_ENV
           echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+          echo "JAR_NAME=$JAR_NAME" >> $GITHUB_ENV
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Create zip
+        run: bash create_zip.sh "$ZIP_NAME"
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '19'
+      - name: Cache antl
+        id: cache-antlr
+        uses: actions/cache@v3
+        with:
+          path: prev23/lib/antlr-4.11.1-complete.jar
+          key: antlr-4.11.1-complete.jar
       - name: Download antlr4
+        if: steps.cache-antlr.outputs.cache-hit != 'true'
         run: wget -Oprev23/lib/antlr-4.11.1-complete.jar https://github.com/antlr/website-antlr4/raw/gh-pages/download/antlr-4.11.1-complete.jar
       - name: Compile project
         run: make -C prev23
-      - name: Create zip
-        run: bash create_zip.sh "$ZIP_NAME"
+      - name: Prepare bin
+        run: |
+          cp -r prev23/lib/* prev23/bin/
+          unzip -q prev23/bin/antlr-4.11.1-complete.jar -d prev23/bin/
+          rm prev23/bin/antlr-4.11.1-complete.jar
+      - name: Package project
+        run: jar cvfm "$JAR_NAME" ./prev23/src/MANIFEST.fm -C ./prev23/bin/ .
       - name: Upload zip
         run: bash moodle-upload.sh "${{ secrets.MOODLE_NAME }}" "${{ secrets.MOODLE_PW }}" "$SUBMISSION_ID" "$ZIP_NAME"
       - name: Create release
@@ -42,6 +58,6 @@ jobs:
           prerelease: false
           draft: false
           files: |
-            ${{ env.ZIP_NAME }}
-            prev23/
+            ${{ env.JAR_NAME }}
+
 
