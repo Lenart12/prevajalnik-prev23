@@ -24,7 +24,7 @@ public class AstNullVisitor<Result, Arg> implements AstVisitor<Result, Arg> {
 	// DECLARATIONS
 
 	@Override
-	public Result visit(AstCmpDecl compDecl, Arg arg) {
+	public Result visit(AstCmpDecl cmpDecl, Arg arg) {
 		return null;
 	}
 
@@ -39,7 +39,7 @@ public class AstNullVisitor<Result, Arg> implements AstVisitor<Result, Arg> {
 	}
 
 	@Override
-	public Result visit(AstTypDecl typeDecl, Arg arg) {
+	public Result visit(AstTypDecl typDecl, Arg arg) {
 		return null;
 	}
 

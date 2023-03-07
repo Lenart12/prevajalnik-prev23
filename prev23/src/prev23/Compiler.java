@@ -6,16 +6,7 @@ import prev23.common.report.*;
 import prev23.phase.lexan.*;
 import prev23.phase.synan.*;
 import prev23.phase.abstr.*;
-import prev23.data.ast.tree.*;
-
-import java.util.Arrays;
-import javax.swing.*;
-import java.awt.Dimension;
-import java.awt.event.*;
-
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.gui.TreeViewer;
+import prev23.phase.seman.*;
 
 /**
  * The compiler.
@@ -48,16 +39,16 @@ public class Compiler {
 	}
 
 	// COMMAND LINE ARGUMENTS
-	
+
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan|synan|abstr";
+	private static final String phases = "none|lexan|synan|abstr|seman";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
 
 	/**
 	 * Returns the value of a command line argument.
-	 * 
+	 *
 	 * @param cmdLineArgName Command line argument name.
 	 * @return Command line argument value.
 	 */
@@ -119,12 +110,11 @@ public class Compiler {
 						}
 						break;
 					}
-				
+
 				// Syntax analysis.
 				try (LexAn lexan = new LexAn(); SynAn synan = new SynAn(lexan)) {
 					SynAn.tree = synan.parser.source();
 					synan.log(SynAn.tree);
-					if (cmdLineArgs.get("--tree") != null) show_treeview(synan);
 				}
 				if (Compiler.cmdLineArgValue("--target-phase").equals("synan"))
 					break;
@@ -138,38 +128,22 @@ public class Compiler {
 				if (Compiler.cmdLineArgValue("--target-phase").equals("abstr"))
 					break;
 
+				// Semantic analysis.
+				try (SemAn seman = new SemAn()) {
+					Abstr.tree.accept(new NameResolver(), null);
+					AbsLogger logger = new AbsLogger(seman.logger);
+					logger.addSubvisitor(new SemLogger(seman.logger));
+					Abstr.tree.accept(logger, null);
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("seman"))
+					break;
+
 			}
 
 			Report.info("Done.");
 		} catch (Report.Error __) {
 			System.exit(1);
 		}
-	}
-
-	private static void show_treeview(SynAn synan) {
-		JFrame frame = new JFrame("prev23 TreeViewer");
-		JPanel panel = new JPanel();
-		TreeViewer viewer = new TreeViewer(Arrays.asList(synan.parser.getRuleNames()), synan.tree);
-
-		JScrollPane scrollPane = new JScrollPane(viewer,
-			ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-			ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
-		);
-		scrollPane.setPreferredSize(new Dimension(800, 600));
-		panel.add(scrollPane);
-		frame.add(panel);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack();
-		frame.setVisible(true);
-		frame.addComponentListener(new ComponentAdapter() {
-			@Override
-			public void componentResized(ComponentEvent e) {
-				final var size = frame.getContentPane().getSize();
-				panel.setPreferredSize(size);
-				scrollPane.setPreferredSize(size);
-				scrollPane.revalidate();
-			}
-		});
 	}
 
 }

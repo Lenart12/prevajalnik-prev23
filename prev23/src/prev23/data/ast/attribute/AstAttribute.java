@@ -17,10 +17,8 @@ public class AstAttribute<Node extends AstTree, Value> {
 
 	/**
 	 * Constructs a new attribute.
-	 * 
-	 * @param numNodes The number of all nodes in the abstract syntax tree.
 	 */
-	public AstAttribute(int numNodes) {
+	public AstAttribute() {
 		mapping = new Vector<Value>();
 	}
 
@@ -33,7 +31,7 @@ public class AstAttribute<Node extends AstTree, Value> {
 	 */
 	public Value put(Node node, Value value) {
 		int id = node.id();
-		if (id >= mapping.size())
+		while (id >= mapping.size())
 			mapping.setSize(id + 1000);
 		mapping.set(id, value);
 		return value;
@@ -47,7 +45,7 @@ public class AstAttribute<Node extends AstTree, Value> {
 	 */
 	public Value get(Node node) {
 		int id = node.id();
-		if (id >= mapping.size())
+		while (id >= mapping.size())
 			return null;
 		return mapping.get(id);
 	}

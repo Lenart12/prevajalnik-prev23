@@ -23,7 +23,7 @@ public interface AstVisitor<Result, Arg> {
 
 	// DECLARATIONS
 
-	public default Result visit(AstCmpDecl compDecl, Arg arg) {
+	public default Result visit(AstCmpDecl cmpDecl, Arg arg) {
 		throw new Report.InternalError();
 	}
 
@@ -35,7 +35,7 @@ public interface AstVisitor<Result, Arg> {
 		throw new Report.InternalError();
 	}
 
-	public default Result visit(AstTypDecl typeDecl, Arg arg) {
+	public default Result visit(AstTypDecl typDecl, Arg arg) {
 		throw new Report.InternalError();
 	}
 
