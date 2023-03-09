@@ -106,6 +106,7 @@ fun_decl2
 fun_def
     returns [AstFunDecl ast]
     : ID LPAR fun_args RPAR COLON type fun_body
+        {$fun_args.ast.relocate(l($LPAR, $RPAR));}
         {$ast = new AstFunDecl(l($ID, $type.ast, $fun_body.ast), $ID.text, $fun_args.ast, $type.ast, $fun_body.ast);}
     ;
 fun_args
@@ -158,7 +159,7 @@ type
     | expr_type {$ast = $expr_type.ast;}
     | HAT type {$ast = new AstPtrType(l($HAT, $type.ast), $type.ast);}
     | record_type {$ast = $record_type.ast;} 
-    | LPAR type RPAR {$ast = $type.ast;} 
+    | LPAR type RPAR {$type.ast.relocate(l($LPAR, $RPAR)); $ast = $type.ast;} 
     ;
 raw_type
     returns [AstType ast]
@@ -321,14 +322,15 @@ id_expr
 id_expr1
     [Token name] returns [AstExpr ast]
     : LPAR id_expr2 RPAR
+      {$id_expr2.ast.relocate(l($LPAR, $RPAR));}
       {$ast = new AstCallExpr(l($name, $RPAR), $name.getText(), $id_expr2.ast);}
     | {$ast = new AstNameExpr(l($name), $name.getText());}
     ;
 id_expr2
     returns [AstTrees<AstExpr> ast]
     : expr id_expr3
-      {$ast = new AstTrees<AstExpr>("arguments", cons($expr.ast, $id_expr3.ast));}
-    | {$ast = new AstTrees<AstExpr>("arguments");}
+      {$ast = new AstTrees<AstExpr>("call parameters", cons($expr.ast, $id_expr3.ast));}
+    | {$ast = new AstTrees<AstExpr>("call parameters");}
     ;
 id_expr3
     returns [LinkedList<AstExpr> ast]
