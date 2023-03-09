@@ -30,7 +30,7 @@ public class NameResolver extends AstFullVisitor<Object, Object> {
 	private void ins(String name, AstNameDecl decl) {
 		try {
 			symbols.ins(decl.name, decl);
-			System.out.printf("Name %s declared at %s%n", name, decl.location());
+			// System.out.printf("Name %s declared at %s%n", name, decl.location());
 		} catch (SymbTable.CannotInsNameException e) {
 			throw new Report.Error(decl.location(), String.format("Duplicate symbol %s", name));
 		}
@@ -39,7 +39,7 @@ public class NameResolver extends AstFullVisitor<Object, Object> {
 	private AstNameDecl fnd(AstName ast_name, String name) {
 		try {
 			var decl = symbols.fnd(name);
-			System.out.printf("Name %s at %s declared at %s%n", name, ast_name.location(), decl.location());
+			// System.out.printf("Name %s at %s declared at %s%n", name, ast_name.location(), decl.location());
 			seman.declaredAt.put(ast_name, decl);
 			return decl;
 		} catch (SymbTable.CannotFndNameException e) {
@@ -49,7 +49,6 @@ public class NameResolver extends AstFullVisitor<Object, Object> {
 
 	@Override
 	public Object visit(AstTrees<? extends AstTree> trees, Object arg) {
-		System.out.printf("Visit %s%n", trees.title);
 		switch (trees.title) {
 			case "call parameters":
 			case "block statements":
@@ -73,7 +72,6 @@ public class NameResolver extends AstFullVisitor<Object, Object> {
 				throw new Report.InternalError();
 		}
 		super.visit(trees, arg);
-		System.out.printf("Leave %s%n", trees.title);
 		return null;
 	}
 
