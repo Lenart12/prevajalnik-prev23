@@ -1,6 +1,6 @@
 # Types
 typ t1 = void;
-typ t2 = void, t2 = int;
+typ t1 = void, t2 = int;
 typ t1 = void, t2 = int, t3 = char;
 # Variables
 var v1: void;
@@ -14,7 +14,7 @@ fun f1(): void, f2(): int, f3(): char;
 fun f1(p1: void): void = p1,
     f2(p1: void, p2: int): int = p1 + p2,
     f3(p1: void, p2: int, p3: char): char = p1 + p2 + p3;
-fun f1(): void, f2(): int = p1;
+fun f1(): void, f2(): int = f1() + f2();
 fun f1(t1: int, t2: void, t3: {i1: int, i2: void}) : void , f2() : void;
 
 # Types
@@ -24,14 +24,14 @@ typ bar = void, foo2 = {
         p2 : int,
         p3 : char
     },
-    prop2 : ( ^ foo )
+    prop2 : ( ^ v1 )
 };
 typ 
     t_void = void,
     t_char = char,
     t_int = int,
     t_bool = bool,
-    t_name = foo,
+    t_name = v2,
     t_arr = [0]void,
     t_ptr = ^void,
     t_rec1 = {
@@ -45,6 +45,29 @@ typ
     t_rec3 = {t_rec3_:{t_rec3__:{t_rec3__:void}}},
     t_par = (void),
     t_mix = (^[0]^({foo:bar}));
+
+var OR : int,
+    AND : int,
+    EQU : int,
+    NEQ : int,
+    LTH : int,
+    GTH : int,
+    LEQ : int,
+    GEQ : int,
+    MUL : int,
+    DIV : int,
+    MOD : int,
+    ADD : int,
+    SUB : int,
+    a: int,
+    b: int,
+    c: int,
+    d: int,
+    e: int,
+    f: int,
+    g: int,
+    foo: int;
+
 
 fun main(argc: int, argv: ^^char) : int = {
     # Constants
@@ -64,11 +87,11 @@ fun main(argc: int, argv: ^^char) : int = {
     '\'';
     nil;
     # Expr call
-    _id ;
-    foo();
-    foo(1);
-    foo(1,2);
-    foo(1,2,3);
+    v3 ;
+    f1();
+    f1(1);
+    f1(1,2);
+    f1(1,2,3);
     # Postfix
     true[0];
     true^;
@@ -118,18 +141,18 @@ fun main(argc: int, argv: ^^char) : int = {
     while a do if b then c else d;
     while a do while b do while c do d;
     # Let
-    let var v1:int; in v;
+    let var v1:int; in v1;
     let
         fun f2():void =
         let
             fun f3():void ;
-        in bar1;
-    in bar2;
+        in f3();
+    in f2();
     let
         var v1:void, v2:int, v3:char;
-        typ t1=void, t2=int, t2=char;
+        typ t1=void, t2=int, t3=char;
         fun f1():void, f2():int, f3():char;
-    in v;
+    in v2;
 
     # Misc
     foo.bar = f1 (10, "123", '2') ;
@@ -140,9 +163,9 @@ fun main(argc: int, argv: ^^char) : int = {
     del (foo) ;
     if a == b then "foo" else "bar";
     if true then {
-        while ^p != 0 do p = p + 1 
+        while ^v1 != 0 do v1 = v1 + 1 
     } else if false then {
-        noop
+        f3()
     };
     let var v1 : ^int, v2: ^void ; fun do_foo():int; in while v1^ % v2 do {
         del (do_foo(v2^))
