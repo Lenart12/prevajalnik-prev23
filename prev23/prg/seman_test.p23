@@ -1,0 +1,59 @@
+# Undefined symbol p1
+# fun f1(p1:int) : int = f1(p1) + f2(p1),
+#     f2(p2:int) : int = f1(p1) + f2(p2);
+
+fun f1(p1:int) : int = f1(p1) + f2(p1),
+    f2(p2:int) : int = f1(p2) + f2(p2);
+
+fun f1():int = {
+    let
+        var l1: int;
+        var l1: int, l2: int;
+        var l3: int;
+    in
+        l1 + l2
+    # Undefined symbol
+    # l1
+    # l2
+    # l3
+};
+
+fun f1():int = {
+    let
+        fun f1():int = { 
+            f1(); # Name f1 at 33.13 - 33.16 declared at 25.13 - 34.9
+            let
+                fun f1():int = {
+                    f1() # Name f1 at 29.21 - 29.24 declared at 28.21 - 30.17
+                };
+            in
+                f1(); # Name f1 at 32.17 - 32.20 declared at 28.21 - 30.17
+            f1() # Name f1 at 33.13 - 33.16 declared at 25.13 - 34.9
+        };
+    in
+        f1(); # Name f1 at 36.9 - 36.12 declared at 25.13 - 34.9
+
+    f1() # Name f1 at 38.5 - 38.8 declared at 23.5 - 39.1
+};
+
+fun f1():int = {
+    f2(); # Name f2 at 42.5 - 42.8 declared at 50.4 - 50.11
+    let
+        fun f2():int =
+            f1() + # Name f1 at 45.13 - 45.16 declared at 41.5 - 50.1
+            f2(); # Name f2 at 46.13 - 46.16 declared at 44.13 - 46.16
+    in
+        f2(); # Name f2 at 48.9 - 48.12 declared at 44.13 - 46.16
+    f2() # Name f2 at 49.5 - 49.8 declared at 50.4 - 50.11
+}, f2():int;
+
+
+typ t1 = t2,
+    t2 = t1;
+# Name t2 at 51.10 - 51.11 declared at 52.5 - 52.11
+# Name t1 at 52.10 - 52.11 declared at 51.5 - 51.11
+
+var v1: v2,
+    v2: v1;
+# Name v2 at 56.9 - 56.10 declared at 57.5 - 57.10
+# Name v1 at 57.9 - 57.10 declared at 56.5 - 56.10
