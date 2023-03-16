@@ -20,11 +20,9 @@ import prev23.phase.seman.*;
  */
 public class NameResolver extends AstFullVisitor<Object, Object> {
 	SymbTable symbols;
-	SemAn seman;
 
-	public NameResolver(SemAn seman) {
+	public NameResolver() {
 		symbols = new SymbTable();
-		seman = seman;
 	}
 
 	private void ins(String name, AstNameDecl decl) {
@@ -40,7 +38,7 @@ public class NameResolver extends AstFullVisitor<Object, Object> {
 		try {
 			var decl = symbols.fnd(name);
 			// System.out.printf("Name %s at %s declared at %s%n", name, ast_name.location(), decl.location());
-			seman.declaredAt.put(ast_name, decl);
+			SemAn.declaredAt.put(ast_name, decl);
 			return decl;
 		} catch (SymbTable.CannotFndNameException e) {
 			throw new Report.Error(ast_name.location(), String.format("Undefined symbol %s", name));
