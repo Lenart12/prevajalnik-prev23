@@ -130,7 +130,9 @@ public class Compiler {
 
 				// Semantic analysis.
 				try (SemAn seman = new SemAn()) {
-					Abstr.tree.accept(new NameResolver(seman), null);
+					Abstr.tree.accept(new NameResolver(), null);
+					Abstr.tree.accept(new TypeResolver(), null);
+					Abstr.tree.accept(new AddrResolver(), null);
 					AbsLogger logger = new AbsLogger(seman.logger);
 					logger.addSubvisitor(new SemLogger(seman.logger));
 					Abstr.tree.accept(logger, null);
