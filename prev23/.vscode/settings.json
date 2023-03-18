@@ -1,7 +1,5 @@
 {
     "java.project.sourcePaths": [
-        "lib",
-        "bin/prev23/phase/lexan",
-        "bin/prev23/phase/synan"
+        "src"
     ]
 }
