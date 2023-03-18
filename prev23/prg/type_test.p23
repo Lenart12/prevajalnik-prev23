@@ -1,0 +1,225 @@
+typ t1 = t2, t2 = t3, t3 = t4, t4 = int;
+var v1: t1, v2: t2, v3: t3, v4: t4;
+
+typ _void = void,
+    _char = char,
+    _int = int,
+    _bool = bool,
+    _arr = [10]int,
+    _rec = {__char: _char, __int: _int},
+    _p_int = ^int,
+    _pp_char = ^^char,
+    __int = ((_int));
+
+# typ variable_array = [_int]int; # Error
+# typ illegal_element = [10]void; # Error
+# typ negative_array = [-13]int;  # Error
+# typ zero_array = [0]int;        # Error
+# typ void_rec = {v: void};       # Error
+
+fun test_const_none() : void = none;
+fun test_const_nil() : ^void = nil;
+fun test_const_str() : ^char = "prev23";
+fun test_const_true() : bool = true;
+fun test_const_false() : bool = false;
+fun test_const_char() : char = 'X';
+fun test_const_int() : int = 1;
+fun test_const_int_() : int = -1;
+
+# fun test_wrong_ret(): char = "prev23"; # Error
+
+fun test_pfx_add(): int = +1;
+fun test_pfx_sub(): int = -1;
+fun test_pfx_mix(): int = +-+-1;
+# fun test_pfx_only_int(): int = +true; # Error
+
+var b1: bool, b2: _bool;
+fun test_pfx_not(): bool = !true;
+# fun test_pfx_not_only_bool(): bool = !1; # Error
+fun test_bool_expr_and(): bool = b1 & b2;
+fun test_bool_expr_or(): bool = b1 | b2;
+fun test_bool_expr_const(): bool = b2 & true | b1;
+# fun test_bool_expr_only_bool(): bool = 1 | 0; # Error
+
+var v1: int, v2: __int;
+fun test_arith(): int = v1 + v2;
+fun test_arith(): int = v1 - v2;
+fun test_arith(): int = 1 * v2;
+fun test_arith(): int = 22 / 7;
+fun test_arith(): int = v1 % 2;
+# fun test_arith_int_only(): int = b1 + v2;   # Error
+# fun test_arith_int_only(): int = ^v1 + ^v2; # Error
+# fun test_arith_int_only(): int = 'A' + 3;   # Error
+
+typ rec_1 = {a: int};
+var r1: rec_1, r2: rec_1;
+fun test_eq(): bool = v1 == v2;
+fun test_neq(): bool = v1 != v2;
+fun test_eq_ptr(): bool = ^v1 == nil;
+# fun test_eq_not_same_type(): bool = ^v1 == ^'A'; # Error
+# fun test_eq_only_primitive(): bool = r1 == r2;   # Error
+fun test_leq(): bool = v1 <= v2;
+fun test_geq(): bool = v1 >= v2;
+fun test_lth(): bool = v1 < v2;
+fun test_gth(): bool = v1 > v2;
+# fun test_gth_not_same_type(): bool = ^v1 > ^'A'; # Error
+# fun test_gth_only_primitive(): bool = r1 > r2;   # Error
+
+fun test_dereference(): ^int = ^v1;
+fun test_dereference(): int = (^v2)^;
+fun test_void_dereference(): ^void = ^v1;
+
+# IDK
+# fun test_new(): ^void = new (v2);
+# fun test_new(): ^void = new (-30);
+# fun test_new_int_only(): ^void = new (rec_1);
+# :-(
+fun test_del(): void = del(^v2);
+# fun test_del_ptr_only(): void = del(v1); # Error
+
+typ ta1 = [10]__int;
+var a1: ta1;
+fun test_arr(): _int = a1[-130];
+fun test_arr(): _int = a1[v2];
+# fun test_arr_int_only(): _int = a1[nil^]; # Error
+
+var r1: {x: int, y: {x: char}};
+var rx: {x: {x: {x: bool}}};
+fun test_rec_access(): int = r1.x;
+fun test_rec_access_deep(): char = r1.y.x;
+fun test_rec_access_deep(): bool = rx.x.x.x;
+# fun test_rec_no_comp(): int = r1.y.z; # Error
+# fun test_rec_not_rec(): int = v1.x;   # Error
+
+fun test_fun(v1: int, v2: _int, v3: __int): char;
+fun test_fun_call(): char = test_fun(v1, v2, 3);
+# fun test_fun_matching_return(): int = test_fun(v1, v2, 3); # Error
+# fun test_fun_arg_c(): int = test_fun(v1, v2);              # Error
+# fun test_fun_arg_c(): char = test_fun(v1, v2, v2, v3);     # Error
+# fun test_fun_not_called(): char = test_fun;                # Error
+# fun test_fun_var_called(): char = v1();                    # Error
+# fun test_fun_param_mismatch(): char = test_fun(v1, b2, 3); # Error
+# fun test_fun_primitive_only(rec: rec_1): void;             # Error
+fun test_fun_ptr(rec: ^rec_1): void;
+
+fun test_cast(): char = (v1: _char);
+fun test_cast_ptr(): ^char = (^v1: ^char);
+fun test_cast_str(): ^int = ("prev23": ^int);
+fun test_cast_rec_ptr(): ^rec_1 = ("prev23": ^rec_1);
+# fun test_cast_rec():void = (v1: rec_1);      # Error
+# fun test_cast_same_rec():void = (r2: rec_1); # Error
+# fun test_cast_void():void = (v1: void);      # Error
+
+fun test_ass_void(): void = v1 = 3;
+# fun test_ass_to_type(): void = _int = 3;           # Error
+# fun test_ass_to_fun(): void = test_ass_to_fun = 3; # Error
+fun test_if_void(): void = if b2 then v1;
+fun test_if_else(): void = if b2 then v1 else "prev23";
+fun test_while_void(): void = while ^v1 == ^v2 do v1;
+# fun test_if_only_bool(): void = if rx.x.x then v1;  # Error
+# fun test_while_only_bool(): void = while nil do v1; # Error
+fun test_paren(): int = ((((((42))))));
+fun test_decl(): char = let typ __char = _char; var c3: __char; in c3;
+fun test_block(): ^char = {
+    test_ass_void();
+    test_while_void();
+    ^test_decl()
+};
+
+typ deep_record = {
+    ptr: ^int,
+    more: {
+        baz: int,
+        bar: char
+    }
+};
+var f1: deep_record;
+
+typ arr = [10]some_int, some_int = int;
+var a1: arr;
+
+# typ direct_cyclic = direct_cyclic; # Error
+# var d1: direct_cyclic;             # Error
+
+# typ indirect_cyclic = a, a = b, b = a; # Error
+# var c1: indirect_cyclic;               # Error
+
+# typ cyclic_arr = [10]cyclic_arr; # Error
+# var a1: cyclic_arr;              # Error
+
+# typ cyclic_rec = {  # Error
+#     a: int,         # Error
+#     b: b            # Error
+# }, b = cyclic_rec;  # Error
+# var r1: cyclic_rec; # Error
+
+# typ direct_cyclic_rec = {    # Error
+#     a: direct_cyclic_rec     # Error
+# };                           # Error
+# var dcr1: direct_cyclic_rec; # Error
+
+# typ indirect_cyclic_rec = {    # Error
+#     a: r2                      # Error
+# }, r2 = {                      # Error
+#     a: indirect_cyclic_rec     # Error
+# };                             # Error
+# var icr1: indirect_cyclic_rec; # Error
+
+# typ deep_cyclic = {             # Error
+#     d1: {                       # Error
+#         d2: {                   # Error
+#             d3: {               # Error
+#                 d4: deep_cyclic # Error
+#             }                   # Error
+#         }                       # Error
+#     }                           # Error
+# };                              # Error
+# var d1: deep_cyclic;            # Error
+
+typ cyclic_ptr = ^p1, p1 = ^cyclic_ptr;
+
+typ direct_linked = {ptr: ^direct_linked};
+var l1: direct_linked;
+
+typ indirect_linked = {ptr: ^r2}, r2 = {ptr: ^indirect_linked, _bool: int};
+var l2: indirect_linked;
+
+fun test_cyclic_access(): int = l2.ptr^.ptr^.ptr^._bool;
+
+# fun test_ptr(p1: ^int, p2: ^char): void = p1^ + p2^;   # Error
+# fun test_ptr_eq(p1: ^int) : ^char = p1;                # Error
+# fun test_ptr_cmp(p1: ^int, p2: ^char): bool = p1 < p2; # Error
+fun test_ptr_ret(i1: int): ^int = ^i1;
+fun test_nil(i1: int): void = ^i1 = nil;
+fun test_nil_char(c1: char): void = ^c1 = nil;
+
+typ void_ptr = ^void;
+# fun test_void(p1: void_ptr): void = void_ptr = nil; # Error
+# fun test_void_lvalue_type(): void = void_ptr^;           # Error
+fun test_void_lvalue(p1: void_ptr): void = p1^;
+fun test_void(p1: void_ptr): void = p1 = nil;
+
+fun test_is_same_cyclic(l1: ^indirect_linked, l2: ^indirect_linked): bool = l1 == l2;
+
+typ structured_same_a = {
+    a: int,
+    b: char,
+    c: ^structured_same_b
+}, structured_same_b = {
+    d: int,
+    e: char,
+    f: ^structured_same_a
+}, structured_same_c = structured_same_b;
+typ structured_same_d = {
+    g: int,
+    h: char,
+    i: ^structured_same_d
+};
+typ structured_same_e = {
+    j: int,
+    k: char,
+    l: ^int
+};
+fun test_structured_same(s1: ^structured_same_a, s2: ^structured_same_c): bool = s1 == s2; 
+fun test_structured_same(s1: ^structured_same_a, s2: ^structured_same_d): bool = s1 == s2; 
+# fun test_structured_same(s1: ^structured_same_a, s2: ^structured_same_e): bool = s1 == s2; # Error 

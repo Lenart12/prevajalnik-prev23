@@ -36,7 +36,10 @@ fun f1():int = {
     f1() # Name f1 at 38.5 - 38.8 declared at 23.5 - 39.1
 };
 
+var rec1: {rec1: int, y: int};
+
 fun f1():int = {
+    rec1.rec1 = rec1.y;
     f2(); # Name f2 at 42.5 - 42.8 declared at 50.4 - 50.11
     let
         fun f2():int =
