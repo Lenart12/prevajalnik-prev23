@@ -124,6 +124,10 @@ public class NameResolver extends AstFullVisitor<Object, Object> {
 	}
 
 	@Override
-	public Object visit(AstRecExpr recExpr, Object arg) { return null; }
+	public Object visit(AstRecExpr recExpr, Object arg) {
+		if (recExpr.rec != null)
+			recExpr.rec.accept(this, arg);
+		return null;
+	}
 
 }
