@@ -512,9 +512,10 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
     @Override
     public SemType visit(AstNewExpr newExpr, Object arg) {
         if (newExpr.type == null) UnexpectedNull();
-        accept_and_expect_actual(newExpr.type, SemInt.class,
-                "Expected an int type for new expression, but got '%s'");
-        return declare_of(newExpr, new SemPtr(new SemVoid()));
+        var new_type = newExpr.type.accept(this, arg);
+        expect_non_void_data_type(new_type, newExpr.type,
+                "New can only be used with non void data types, but got '%s'");
+        return declare_of(newExpr, new SemPtr(new_type));
     }
 
     @Override
