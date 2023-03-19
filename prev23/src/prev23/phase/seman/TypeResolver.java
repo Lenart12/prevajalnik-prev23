@@ -229,12 +229,21 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
     private static class NameTypeDependenciesCollector extends AstFullVisitor<Object, Object> {
         public HashSet<String> included_names = new HashSet<>();
 
+        public static class NameIsNotATypeDeclarationException extends RuntimeException {
+            public AstNameType offending_type;
+            public NameIsNotATypeDeclarationException(AstNameType name_type) {
+                this.offending_type = name_type;
+            }
+        }
+
         @Override
         public SemType visit(AstNameType nameType, Object arg) {
             var declared_at = SemAn.declaredAt.get(nameType);
 
-            assert declared_at != null;
-            assert declared_at instanceof AstTypDecl;
+            if (!(declared_at instanceof AstTypDecl)) {
+                throw new NameIsNotATypeDeclarationException(nameType);
+            }
+
             var declared_type = SemAn.declaresType.get((AstTypDecl) declared_at);
 
             if (declared_type == null)
@@ -264,7 +273,12 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
             if (decl == null) UnexpectedNull();
 
             var dependencies_visitor = new NameTypeDependenciesCollector();
-            decl.accept(dependencies_visitor, null);
+            try {
+                decl.accept(dependencies_visitor, null);
+            } catch (NameTypeDependenciesCollector.NameIsNotATypeDeclarationException e) {
+                TypeError(e.offending_type, String.format(
+                        "'%s' does not define a type and can not be used as one", e.offending_type.name));
+            }
             unchecked_types.put(decl, dependencies_visitor.included_names);
         }
 
@@ -657,8 +671,8 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         var declared_at = SemAn.declaredAt.get(nameType);
         if (declared_at == null) UnexpectedNull();
 
-        return declare_is(nameType, SemAn.declaresType.get(expect(declared_at, AstTypDecl.class,
-                "Expected type declaration")));
+        return declare_is(nameType, SemAn.declaresType.get(expect(declared_at, AstTypDecl.class, nameType,
+                String.format("'%s' does not define a type and can not be used as one", nameType.name))));
     }
 
     @Override

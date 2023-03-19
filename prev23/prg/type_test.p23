@@ -10,7 +10,10 @@ typ _void = void,
     _p_int = ^int,
     _pp_char = ^^char,
     __int = ((_int));
+fun some_fun():void;
 
+# typ typ_is_var = v1;            # Error
+# typ typ_is_fun = some_fun;      # Error
 # typ variable_array = [_int]int; # Error
 # typ illegal_element = [10]void; # Error
 # typ negative_array = [-13]int;  # Error
@@ -69,11 +72,10 @@ fun test_dereference(): ^int = ^v1;
 fun test_dereference(): int = (^v2)^;
 fun test_void_dereference(): ^void = ^v1;
 
-# IDK
-# fun test_new(): ^void = new (v2);
-# fun test_new(): ^void = new (-30);
-# fun test_new_int_only(): ^void = new (rec_1);
-# :-(
+fun test_new(): ^rec_1 = new (rec_1);
+# fun test_new_var(): ^void = new (v2);
+fun test_new_const(): ^void = new ({v1: __int});
+fun test_new_to_void(): ^void = new (rec_1);
 fun test_del(): void = del(^v2);
 # fun test_del_ptr_only(): void = del(v1); # Error
 
