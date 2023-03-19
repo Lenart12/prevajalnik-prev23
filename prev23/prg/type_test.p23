@@ -10,6 +10,12 @@ typ _void = void,
     _p_int = ^int,
     _pp_char = ^^char,
     __int = ((_int));
+
+typ double_comp = {
+    a: int,
+    a: char
+};
+
 fun some_fun():void;
 
 # typ typ_is_var = v1;            # Error

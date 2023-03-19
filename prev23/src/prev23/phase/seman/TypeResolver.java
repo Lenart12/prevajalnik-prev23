@@ -217,6 +217,10 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         var cmp_names = new Vector<String>(trees.size());
         for (AstCmpDecl t : trees) {
             if (t == null) UnexpectedNull();
+            if (cmp_names.contains(t.name)) {
+                TypeError(t, String.format("Duplicate record component name '%s'", t.name));
+            }
+
             var cmp_type = t.accept(this, arg);
             expect_non_void_data_type(cmp_type, t, "Records can only have non void data types, but got '%s'");
             cmp_types.add(cmp_type);
