@@ -11,10 +11,10 @@ typ _void = void,
     _pp_char = ^^char,
     __int = ((_int));
 
-typ double_comp = {
-    a: int,
-    a: char
-};
+# typ double_comp = { # Error
+#     a: int,         # Error
+#     a: char         # Error
+# };                  # Error
 
 fun some_fun():void;
 
@@ -64,7 +64,7 @@ typ rec_1 = {a: int};
 var r1: rec_1, r2: rec_1;
 fun test_eq(): bool = v1 == v2;
 fun test_neq(): bool = v1 != v2;
-fun test_eq_ptr(): bool = ^v1 == nil;
+fun test_eq_ptr(): bool = ^v1 == (nil: ^int);
 # fun test_eq_not_same_type(): bool = ^v1 == ^'A'; # Error
 # fun test_eq_only_primitive(): bool = r1 == r2;   # Error
 fun test_leq(): bool = v1 <= v2;
@@ -76,12 +76,12 @@ fun test_gth(): bool = v1 > v2;
 
 fun test_dereference(): ^int = ^v1;
 fun test_dereference(): int = (^v2)^;
-fun test_void_dereference(): ^void = ^v1;
+fun test_void_dereference(): ^void = (^v1 : ^void);
 
 fun test_new(): ^rec_1 = new (rec_1);
 # fun test_new_var(): ^void = new (v2);
-fun test_new_const(): ^void = new ({v1: __int});
-fun test_new_to_void(): ^void = new (rec_1);
+fun test_new_const(): ^void = (new ({v1: __int}) : ^void);
+fun test_new_to_void(): ^void = (new (rec_1): ^void);
 fun test_del(): void = del(^v2);
 # fun test_del_ptr_only(): void = del(v1); # Error
 
@@ -198,8 +198,8 @@ fun test_cyclic_access(): int = l2.ptr^.ptr^.ptr^._bool;
 # fun test_ptr_eq(p1: ^int) : ^char = p1;                # Error
 # fun test_ptr_cmp(p1: ^int, p2: ^char): bool = p1 < p2; # Error
 fun test_ptr_ret(i1: int): ^int = ^i1;
-fun test_nil(i1: int): void = ^i1 = nil;
-fun test_nil_char(c1: char): void = ^c1 = nil;
+fun test_nil(i1: int): bool = ^i1 == (nil: ^int);
+fun test_nil_char(c1: char): bool = ^c1 == (nil : ^char);
 
 typ void_ptr = ^void;
 # fun test_void(p1: void_ptr): void = void_ptr = nil; # Error
@@ -231,3 +231,15 @@ typ structured_same_e = {
 fun test_structured_same(s1: ^structured_same_a, s2: ^structured_same_c): bool = s1 == s2; 
 fun test_structured_same(s1: ^structured_same_a, s2: ^structured_same_d): bool = s1 == s2; 
 # fun test_structured_same(s1: ^structured_same_a, s2: ^structured_same_e): bool = s1 == s2; # Error 
+
+
+typ r = {p: ^b, n: ^g},
+    g = {p: ^r, n: ^b},
+    b = {p: ^g, n: ^r};
+
+fun test_rgb(r1: ^r, g1: ^g, b1: ^b) : bool = (r1 == g1) & (r1 == b1) & (g1 == b1); 
+
+fun test_lvalue_ptr(i1: ^int): void = i1^ = 5;
+# fun test_lvalue_const(): void = 5 = 4;
+# fun test_lvalue_ptr_error(i1: int): void = ^i1 = (nil: ^int); # Error
+fun test_warn_non_lvalue_ptr(): ^int = ^5;

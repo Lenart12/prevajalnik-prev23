@@ -3,6 +3,7 @@ package prev23.phase.seman;
 import prev23.common.report.*;
 import prev23.data.ast.tree.decl.*;
 import prev23.data.ast.tree.expr.*;
+import prev23.data.ast.tree.stmt.AstAssignStmt;
 import prev23.data.ast.visitor.*;
 
 
@@ -75,7 +76,10 @@ public class AddrResolver extends AstFullVisitor<Boolean, Object> {
 
 	@Override
 	public Boolean visit(AstPfxExpr pfxExpr, Object arg) {
-		super.visit(pfxExpr, arg);
+		if (pfxExpr.expr == null) UnexpectedNull();
+		if (!pfxExpr.expr.accept(this, arg) && pfxExpr.oper == AstPfxExpr.Oper.PTR)
+			Report.warning(pfxExpr, "Trying to take an address of a non lvalue");
+
 		return declare_address(pfxExpr, false);
 	}
 
@@ -91,5 +95,18 @@ public class AddrResolver extends AstFullVisitor<Boolean, Object> {
 	public Boolean visit(AstSfxExpr sfxExpr, Object arg) {
 		super.visit(sfxExpr, arg);
 		return declare_address(sfxExpr, sfxExpr.oper == AstSfxExpr.Oper.PTR);
+	}
+
+	@Override
+	public Boolean visit(AstAssignStmt assStmt, Object arg) {
+		if (assStmt.dst == null || assStmt.src == null) UnexpectedNull();
+
+		if (!assStmt.dst.accept(this, arg)) {
+			throw new Report.Error(assStmt.dst, "Can not assign to a non lvalue");
+		}
+
+		assStmt.src.accept(this, null);
+
+		return false;
 	}
 }

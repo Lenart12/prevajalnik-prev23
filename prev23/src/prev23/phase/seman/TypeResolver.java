@@ -59,7 +59,7 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         }
 
         else if (t1 instanceof SemPtr p1 && t2 instanceof SemPtr p2) {
-            return is_same_type(p1.baseType, p2.baseType, equal_types) || is_void(p1.baseType) || is_void(p2.baseType);
+            return is_same_type(p1.baseType, p2.baseType, equal_types);
         }
 
         else if (t1 instanceof SemRec r1 && t2 instanceof SemRec r2) {
