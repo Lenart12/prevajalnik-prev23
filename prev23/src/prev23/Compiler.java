@@ -7,6 +7,7 @@ import prev23.phase.lexan.*;
 import prev23.phase.synan.*;
 import prev23.phase.abstr.*;
 import prev23.phase.seman.*;
+import prev23.phase.memory.*;
 
 /**
  * The compiler.
@@ -41,7 +42,7 @@ public class Compiler {
 	// COMMAND LINE ARGUMENTS
 
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan|synan|abstr|seman";
+	private static final String phases = "none|lexan|synan|abstr|seman|memory";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
@@ -138,6 +139,17 @@ public class Compiler {
 					Abstr.tree.accept(logger, null);
 				}
 				if (Compiler.cmdLineArgValue("--target-phase").equals("seman"))
+					break;
+
+				// Memory layout.
+				try (Memory memory = new Memory()) {
+					Abstr.tree.accept(new MemEvaluator(), null);
+					AbsLogger logger = new AbsLogger(memory.logger);
+					logger.addSubvisitor(new SemLogger(memory.logger));
+					logger.addSubvisitor(new MemLogger(memory.logger));
+					Abstr.tree.accept(logger, "Decls");
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("memory"))
 					break;
 
 			}

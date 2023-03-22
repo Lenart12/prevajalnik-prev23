@@ -1,1 +1,12 @@
+typ integer=int;
 var i:int;
+fun f(j:integer):int=i+j;
+typ a=b,b=a;
+typ str={i:int,j:int};
+var s:str;
+fun f(j:integer):int=s.i+j;
+
+typ r={p:^g,n:^b},
+    g={p:^b,n:^r},
+    b={p:^r,n:^g};
+fun f(d:^r):^g=d;
