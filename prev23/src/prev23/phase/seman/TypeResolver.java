@@ -318,6 +318,33 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         return new SemVoid();
     }
 
+    private SemType visit_function_declarations(AstTrees<AstFunDecl> trees, Object arg) {
+        for (var decl: trees) {
+            if (decl.pars == null || decl.type == null) UnexpectedNull();
+
+            accept_and_expect(decl.pars, SemVoid.class, "");
+
+            var fun_type = decl.type.accept(this, arg);
+            expect_primitive(fun_type, decl.type, "Function return type must be primitive, but got '%s'");
+
+            SemAn.isType.put(decl.type, fun_type);
+        }
+
+        for (var decl: trees) {
+            if (decl.stmt == null) continue;
+
+            var stmt_type = decl.stmt.accept(this, arg);
+
+            var fun_type = SemAn.isType.get(decl.type);
+            if (fun_type == null) UnexpectedNull();
+
+            expect_same_type(fun_type, stmt_type, decl,
+                    "Function declared return '%s' does not match statement return '%s'");
+        }
+
+        return new SemVoid();
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public SemType visit(AstTrees<? extends AstTree> trees, Object arg) {
@@ -325,9 +352,10 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
             case "call parameters":
             case "declarations":
             case "function arguments":
-            case "function declarations":
             case "variable declarations":
                 break;
+            case "function declarations":
+                return visit_function_declarations((AstTrees<AstFunDecl>) trees, arg);
             case "block statements":
                 return visit_block_statements(trees, arg);
             case "record declarations":
@@ -356,19 +384,8 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
 
     @Override
     public SemType visit(AstFunDecl funDecl, Object arg) {
-        if (funDecl.pars == null || funDecl.type == null) UnexpectedNull();
-
-        accept_and_expect(funDecl.pars, SemVoid.class, "");
-
-        var fun_type = funDecl.type.accept(this, arg);
-        expect_primitive(fun_type, funDecl.type, "Function return type must be primitive, but got '%s'");
-
-        if (funDecl.stmt != null) {
-            SemType stmt_type = funDecl.stmt.accept(this, arg);
-            expect_same_type(fun_type, stmt_type, funDecl, "Function declared return '%s' does not match statement return '%s'");
-        }
-
-        return fun_type;
+        // must be in visit_function_declarations()
+        throw new Report.InternalError();
     }
 
     @Override

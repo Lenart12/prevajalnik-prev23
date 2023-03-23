@@ -243,3 +243,8 @@ fun test_lvalue_ptr(i1: ^int): void = i1^ = 5;
 # fun test_lvalue_const(): void = 5 = 4;
 # fun test_lvalue_ptr_error(i1: int): void = ^i1 = (nil: ^int); # Error
 fun test_warn_non_lvalue_ptr(): ^int = ^5;
+
+
+fun f(): int = f();
+fun f(): int = g(), g(): int = f();
+# fun f(): int = g(), g(): char = f(); # Error
