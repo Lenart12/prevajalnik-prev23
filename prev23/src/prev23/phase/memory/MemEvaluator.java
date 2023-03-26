@@ -22,7 +22,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
         public int depth = 0;
         public long locals_size = 0;
         public long args_size = 0;
-        public long params_size = -8;
+        public long params_size = 8;
         public HashMap<String, AstNameDecl> exported_names = new HashMap<>();
 
         private MemScope() {}
@@ -83,12 +83,14 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
                 var access_depth = Math.max(0, depth);
 
                 if (decl instanceof AstParDecl) {
-                    params_size -= mem_size;
                     access = new MemRelAccess(mem_size, params_size, access_depth);
-                } else {
+                    params_size += mem_size;
+                } else if (decl instanceof AstVarDecl) {
+                    locals_size -= mem_size;
                     access = new MemRelAccess(mem_size, locals_size, access_depth);
-
-                    if (decl instanceof AstVarDecl || !(type instanceof SemRec))
+                } else if (decl instanceof AstCmpDecl) {
+                    access = new MemRelAccess(mem_size, locals_size, access_depth);
+                    if (!(type instanceof SemRec))
                         locals_size += mem_size;
                 }
             }
