@@ -88,7 +88,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
                 } else {
                     access = new MemRelAccess(mem_size, locals_size, access_depth);
 
-                    if (!(type instanceof SemRec))
+                    if (decl instanceof AstVarDecl || !(type instanceof SemRec))
                         locals_size += mem_size;
                 }
             }
@@ -154,6 +154,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
     @Override
     public Object visit(AstCallExpr callExpr, MemScope scope) {
         scope.reserve_args(callExpr);
+        super.visit(callExpr, scope);
         return null;
     }
 
