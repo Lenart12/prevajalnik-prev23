@@ -55,7 +55,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
         }
 
         public void add_frame(AstFunDecl decl) {
-            var frame = new MemFrame(get_label(decl), depth, locals_size, args_size);
+            var frame = new MemFrame(get_label(decl), depth - 1, -locals_size, args_size);
             Memory.frames.put(decl, frame);
         }
 
