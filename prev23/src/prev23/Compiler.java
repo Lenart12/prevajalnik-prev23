@@ -8,6 +8,7 @@ import prev23.phase.synan.*;
 import prev23.phase.abstr.*;
 import prev23.phase.seman.*;
 import prev23.phase.memory.*;
+import prev23.phase.imcgen.*;
 
 /**
  * The compiler.
@@ -42,7 +43,7 @@ public class Compiler {
 	// COMMAND LINE ARGUMENTS
 
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan|synan|abstr|seman|memory";
+	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
@@ -152,6 +153,17 @@ public class Compiler {
 				if (Compiler.cmdLineArgValue("--target-phase").equals("memory"))
 					break;
 
+				// Intermediate code generation.
+				try (ImcGen imcgen = new ImcGen()) {
+					Abstr.tree.accept(new CodeGenerator(), null);
+					AbsLogger logger = new AbsLogger(imcgen.logger);
+					logger.addSubvisitor(new SemLogger(imcgen.logger));
+					logger.addSubvisitor(new MemLogger(imcgen.logger));
+					logger.addSubvisitor(new ImcLogger(imcgen.logger));
+					Abstr.tree.accept(logger, "Decls");
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("imcgen"))
+					break;
 			}
 
 			Report.info("Done.");
