@@ -11,15 +11,12 @@ public class SemRec extends SemType {
 
 	/** Component types. */
 	private final SemType[] cmpTypes;
-	public final HashMap<String, SemType> cmpNames;
-	public SemRec(Collection<SemType> compTypes, List<String> compNames) {
-		assert compTypes.size() == compNames.size();
+
+	public SemRec(Collection<SemType> compTypes) {
 		this.cmpTypes = new SemType[compTypes.size()];
-		this.cmpNames = new LinkedHashMap<>();
 		int index = 0;
 		for (SemType compType : compTypes) {
-			this.cmpTypes[index] = compType;
-			this.cmpNames.put(compNames.get(index++), compType);
+			this.cmpTypes[index++] = compType;
 		}
 	}
 

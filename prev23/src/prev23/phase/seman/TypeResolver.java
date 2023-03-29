@@ -16,6 +16,8 @@ import prev23.data.typ.*;
 
 public class TypeResolver extends AstFullVisitor<SemType, Object> {
 
+    public final HashMap<SemRec, HashMap<String, SemType>> record_component_names = new HashMap<>();
+
     private static boolean is_void(SemType type) {
         return type.actualType() instanceof SemVoid;
     }
@@ -77,11 +79,11 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         return !is_void(type) && is_primitive(type);
     }
 
-    private static String type_to_string(SemType type) {
+    private String type_to_string(SemType type) {
         return type_to_string(type, new HashSet<>());
     }
 
-    private static String type_to_string(SemType type, HashSet<String> visited_names) {
+    private String type_to_string(SemType type, HashSet<String> visited_names) {
         if (type == null) return "!null_type!";
         if (type instanceof SemArr arr) return String.format("arr(%d x %s)", arr.numElems, type_to_string(arr.elemType, visited_names));
         else if (type instanceof SemBool) return "bool";
@@ -96,7 +98,7 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         }
         else if (type instanceof SemPtr ptr) return String.format("ptr(%s)", type_to_string(ptr.baseType, visited_names));
         else if (type instanceof SemRec rec)
-            return String.format("{%s}", rec.cmpNames.entrySet().stream().map(
+            return String.format("{%s}", record_component_names.get(rec).entrySet().stream().map(
                     el -> String.format("%s: %s", el.getKey(), type_to_string(el.getValue(), visited_names))
             ).collect(Collectors.joining(", ")));
         else if (type instanceof SemVoid) return "void";
@@ -104,32 +106,32 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
         throw new Report.InternalError();
     }
 
-    private static void expect_comparable(SemType type, Locatable ast, String message) {
+    private void expect_comparable(SemType type, Locatable ast, String message) {
         if (is_comparable(type)) return;
         throw new Report.Error(ast, String.format((!message.isEmpty()) ? message :
                 "Expected comparable type but got '%s'", type_to_string(type)));
     }
 
-    private static void expect_primitive(SemType type, Locatable ast, String message) {
+    private void expect_primitive(SemType type, Locatable ast, String message) {
         if (is_primitive(type)) return;
         throw new Report.Error(ast, String.format((!message.isEmpty()) ? message :
                 "Expected primitive type, but got '%s'", type_to_string(type)));
     }
 
-    private static void expect_non_void_primitive(SemType type, Locatable ast, String message) {
+    private void expect_non_void_primitive(SemType type, Locatable ast, String message) {
         if (is_non_void_primitive(type)) return;
         throw new Report.Error(ast, String.format((!message.isEmpty()) ? message :
                 "Expected non void primitive type, but got '%s'", type_to_string(type)));
     }
 
-    private static void expect_same_type(SemType t1, SemType t2, Locatable ast, String message) {
+    private void expect_same_type(SemType t1, SemType t2, Locatable ast, String message) {
         if (is_same_type(t1, t2)) return;
         throw new Report.Error(ast, String.format((!message.isEmpty()) ? message :
                 "Expected two of same type, but got '%s' and '%s'", type_to_string(t1), type_to_string(t2)));
     }
 
 
-    private static void expect_data_type(SemType type, Locatable ast, String message) {
+    private void expect_data_type(SemType type, Locatable ast, String message) {
         var aClass = type.actualType().getClass();
         if (aClass.equals(SemVoid.class) ||
             aClass.equals(SemChar.class) ||
@@ -144,24 +146,24 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
                 "Expected data type, but got '%s'", type_to_string(type)));
     }
 
-    private static void expect_non_void_data_type(SemType type, Locatable ast, String message) {
+    private void expect_non_void_data_type(SemType type, Locatable ast, String message) {
         if (type.actualType() instanceof SemVoid) {
             throw new Report.Error(ast, String.format((!message.isEmpty()) ? message :
                     "Expected non void data type, but got '%s'", type_to_string(type)));
         }
         expect_data_type(type, ast, message);
     }
-    private static void expect_castable(SemType type_from, SemType type_to, Locatable ast, String message) {
+    private void expect_castable(SemType type_from, SemType type_to, Locatable ast, String message) {
         if (is_non_void_primitive(type_from) && is_non_void_primitive(type_to)) return;
         throw new Report.Error(ast, String.format((!message.isEmpty()) ? message :
                 "Type '%s' cannot be cast to type '%s'", type_to_string(type_from), type_to_string(type_to)));
     }
 
-    private static <T> T expect(Object o, Class<T> expected_class, String message) {
+    private <T> T expect(Object o, Class<T> expected_class, String message) {
         return expect(o, expected_class, null, message);
     }
 
-    private static <T> T expect(Object o, Class<T> expected_class, Locatable ast, String message) {
+    private <T> T expect(Object o, Class<T> expected_class, Locatable ast, String message) {
         if (expected_class.isInstance(o)) return expected_class.cast(o);
 
         var error = String.format((!message.isEmpty()) ? message: "Unexpected type '%s', expected '%s'",
@@ -214,20 +216,22 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
 
     private SemType visit_record_declarations(AstTrees<AstCmpDecl> trees, Object arg) {
         var cmp_types = new Vector<SemType>(trees.size());
-        var cmp_names = new Vector<String>(trees.size());
+        var cmp_names = new LinkedHashMap<String, SemType>();
         for (AstCmpDecl t : trees) {
             if (t == null) UnexpectedNull();
-            if (cmp_names.contains(t.name)) {
+            if (cmp_names.containsKey(t.name)) {
                 TypeError(t, String.format("Duplicate record component name '%s'", t.name));
             }
 
             var cmp_type = t.accept(this, arg);
             expect_non_void_data_type(cmp_type, t, "Records can only have non void data types, but got '%s'");
             cmp_types.add(cmp_type);
-            cmp_names.add(t.name);
+            cmp_names.put(t.name, cmp_type);
         }
 
-        return new SemRec(cmp_types, cmp_names);
+        var rec = new SemRec(cmp_types);
+        record_component_names.put(rec, cmp_names);
+        return rec;
     }
 
     private static class NameTypeDependenciesCollector extends AstFullVisitor<Object, Object> {
@@ -572,10 +576,10 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
                 "Type '%s' is not a record and can not be indexed as one");
 
         var comp_name = recExpr.comp.name;
-        if (!rec_type.cmpNames.containsKey(comp_name))
+        if (!record_component_names.get(rec_type).containsKey(comp_name))
             TypeError(recExpr.comp, String.format("Record does not contain component named '%s'", comp_name));
 
-        return declare_of(recExpr, rec_type.cmpNames.get(comp_name));
+        return declare_of(recExpr, record_component_names.get(rec_type).get(comp_name));
     }
 
     @Override
