@@ -55,3 +55,17 @@ in {
     a4(l1, l2, l3);
     a3(l1, l2)
 };
+
+fun f1(p1: int): int = let
+    var l1: int;
+    fun f2(p2: int): int = let
+        var l2: int;
+        fun f3(p3: int): int = let
+            var l3: int;
+        in {
+            l1 + l2 + l3 + f1(p1) + f2(p2) + f3(p3)
+        };
+    in
+        l1 + l2 + f1(p1) + f2(p2);
+in
+    l1 + f1(p1);

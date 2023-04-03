@@ -1,103 +1,340 @@
 package prev23.phase.imcgen;
 
+import prev23.common.report.Locatable;
+import prev23.common.report.Report;
 import prev23.data.ast.tree.AstTree;
 import prev23.data.ast.tree.AstTrees;
 import prev23.data.ast.tree.decl.*;
 import prev23.data.ast.tree.expr.*;
 import prev23.data.ast.tree.stmt.*;
-import prev23.data.ast.tree.type.*;
 import prev23.data.ast.visitor.AstFullVisitor;
+import prev23.data.imc.code.ImcInstr;
+import prev23.data.imc.code.expr.*;
+import prev23.data.imc.code.stmt.*;
+import prev23.data.mem.MemAbsAccess;
+import prev23.data.mem.MemFrame;
+import prev23.data.mem.MemLabel;
+import prev23.data.mem.MemRelAccess;
+import prev23.data.typ.SemArr;
+import prev23.data.typ.SemChar;
+import prev23.phase.memory.Memory;
+import prev23.phase.seman.SemAn;
 
-public class CodeGenerator extends AstFullVisitor<Object, Object> {
-    @Override
-    public Object visit(AstTrees<? extends AstTree> trees, Object arg) {
-        return super.visit(trees, arg);
+import java.util.List;
+import java.util.Stack;
+import java.util.Vector;
+
+public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
+    private final Stack<MemFrame> frame_stack = new Stack<>();
+
+    private static <T> T expect(Object o, Class<T> expected_class, Locatable ast) {
+        if (expected_class.isInstance(o)) return expected_class.cast(o);
+
+        var error = String.format("Unexpected class '%s', expected '%s'",
+                (o != null) ? o.getClass().getSimpleName() : "null", expected_class.getSimpleName());
+        if (ast != null) throw new Report.Error(ast, error);
+        if (o instanceof Locatable l) throw new Report.Error(l, error);
+        throw new Report.Error(error);
+    }
+
+    private <T extends ImcInstr> T accept_and_expect(AstTree ast, Class<T> type) {
+        return expect(ast.accept(this, null), type, ast);
+    }
+
+    private ImcStmt accept_stmt(AstTree ast) {
+        return accept_and_expect(ast, ImcStmt.class);
+    }
+
+    private ImcExpr accept_expr(AstTree ast) {
+        return accept_and_expect(ast, ImcExpr.class);
+    }
+
+    private ImcExpr accept_mem_addr(AstTree ast) {
+        return expect(accept_expr(ast), ImcMEM.class, ast).addr;
+    }
+
+    private static <T extends AstNameDecl> T get_declared_at(AstNameExpr expr, Class<T> type) {
+        return expect(SemAn.declaredAt.get(expr), type, expr);
+    }
+
+    private static AstFunDecl get_function(AstNameExpr expr) {
+        return get_declared_at(expr, AstFunDecl.class);
+    }
+
+    private static MemFrame get_frame(AstNameExpr expr) {
+        return Memory.frames.get(get_function(expr));
+    }
+
+    private static MemRelAccess get_rel_access(AstMemDecl decl) {
+        return get_rel_access(decl, null);
+    }
+
+    private static MemRelAccess get_rel_access(AstMemDecl decl, AstTree ast) {
+        return expect(Memory.accesses.get(decl), MemRelAccess.class, (ast == null) ? decl : ast);
+    }
+
+    private static MemRelAccess get_rel_access(AstNameExpr expr) {
+        return get_rel_access(get_declared_at(expr, AstMemDecl.class), expr);
+    }
+
+    private static ImcInstr declare_expr(AstExpr ast, ImcExpr e) {
+        ImcGen.exprImc.put(ast, e);
+        return e;
+    }
+
+    private static ImcInstr declare_stmt(AstStmt ast, ImcStmt s) {
+        ImcGen.stmtImc.put(ast, s);
+        return s;
     }
 
     @Override
-    public Object visit(AstArrExpr arrExpr, Object arg) {
-        return super.visit(arrExpr, arg);
+    public ImcInstr visit(AstArrExpr arrExpr, Object arg) {
+        var arr = accept_mem_addr(arrExpr.arr);
+        var idx = accept_expr(arrExpr.idx);
+        var element_size = ((SemArr) SemAn.ofType.get(arrExpr.arr).actualType()).elemType.size();
+        return declare_expr(arrExpr, new ImcMEM(
+                new ImcBINOP(ImcBINOP.Oper.ADD, arr, new ImcBINOP(
+                        ImcBINOP.Oper.MUL, idx, new ImcCONST(element_size)))));
     }
 
     @Override
-    public Object visit(AstAtomExpr atomExpr, Object arg) {
-        return super.visit(atomExpr, arg);
+    public ImcInstr visit(AstAtomExpr atomExpr, Object arg) {
+        return declare_expr(atomExpr, switch (atomExpr.type) {
+            case VOID, PTR -> new ImcCONST(0);
+            case CHAR -> new ImcCONST(atomExpr.value.codePointAt(1));
+            case INT -> new ImcCONST(Integer.parseInt(atomExpr.value));
+            case BOOL -> new ImcCONST(atomExpr.value.equals("true") ? 1 : 0);
+            case STR -> new ImcNAME(Memory.strings.get(atomExpr).label);
+        });
     }
 
     @Override
-    public Object visit(AstBinExpr binExpr, Object arg) {
-        return super.visit(binExpr, arg);
+    public ImcInstr visit(AstBinExpr binExpr, Object arg) {
+        var lhs = accept_expr(binExpr.fstExpr);
+        var rhs = accept_expr(binExpr.sndExpr);
+        return declare_expr(binExpr, switch (binExpr.oper) {
+            case OR -> new ImcBINOP(ImcBINOP.Oper.OR, lhs, rhs);
+            case AND -> new ImcBINOP(ImcBINOP.Oper.AND, lhs, rhs);
+            case EQU -> new ImcBINOP(ImcBINOP.Oper.EQU, lhs, rhs);
+            case NEQ -> new ImcBINOP(ImcBINOP.Oper.NEQ, lhs, rhs);
+            case LTH -> new ImcBINOP(ImcBINOP.Oper.LTH, lhs, rhs);
+            case GTH -> new ImcBINOP(ImcBINOP.Oper.GTH, lhs, rhs);
+            case LEQ -> new ImcBINOP(ImcBINOP.Oper.LEQ, lhs, rhs);
+            case GEQ -> new ImcBINOP(ImcBINOP.Oper.GEQ, lhs, rhs);
+            case ADD -> new ImcBINOP(ImcBINOP.Oper.ADD, lhs, rhs);
+            case SUB -> new ImcBINOP(ImcBINOP.Oper.SUB, lhs, rhs);
+            case MUL -> new ImcBINOP(ImcBINOP.Oper.MUL, lhs, rhs);
+            case DIV -> new ImcBINOP(ImcBINOP.Oper.DIV, lhs, rhs);
+            case MOD -> new ImcBINOP(ImcBINOP.Oper.MOD, lhs, rhs);
+        });
     }
 
     @Override
-    public Object visit(AstCallExpr callExpr, Object arg) {
-        return super.visit(callExpr, arg);
+    public ImcInstr visit(AstCallExpr callExpr, Object arg) {
+        Vector<Long> offsets = new Vector<>();
+        Vector<ImcExpr> args = new Vector<>();
+
+        var fun_decl = get_function(callExpr);
+        var current_frame = frame_stack.peek();
+        var call_frame = get_frame(callExpr);
+
+        ImcExpr static_link = new ImcCONST(0);
+
+        if (call_frame.depth != 1) {
+            static_link = new ImcTEMP(current_frame.FP);
+
+            var hops = current_frame.depth - call_frame.depth + 1;
+            assert hops >= 0;
+
+            for (int i = 0; i < hops; i++) static_link = new ImcMEM(static_link);
+        }
+        
+        offsets.add(0L);
+        args.add(static_link);
+
+        for (var i = 0; i < fun_decl.pars.size(); i++) {
+            offsets.add(get_rel_access(fun_decl.pars.get(i)).offset);
+            args.add(accept_expr(callExpr.args.get(i)));
+        }
+        return declare_expr(callExpr, new ImcCALL(call_frame.label, offsets, args));
     }
 
     @Override
-    public Object visit(AstCastExpr castExpr, Object arg) {
-        return super.visit(castExpr, arg);
+    public ImcInstr visit(AstCastExpr castExpr, Object arg) {
+        var cast_from = accept_expr(castExpr.expr);
+
+        if (SemAn.isType.get(castExpr.type).actualType() instanceof SemChar) {
+            return declare_expr(castExpr, new ImcBINOP(ImcBINOP.Oper.MOD, cast_from, new ImcCONST(256)));
+        }
+        return declare_expr(castExpr, cast_from);
     }
 
     @Override
-    public Object visit(AstDelExpr delExpr, Object arg) {
-        return super.visit(delExpr, arg);
+    public ImcInstr visit(AstNewExpr newExpr, Object arg) {
+        var static_link = (frame_stack.empty()) ? new ImcCONST(0) : new ImcTEMP(frame_stack.peek().FP);
+        return declare_expr(newExpr, new ImcCALL(
+                new MemLabel("new"),
+                new Vector<>(List.of(0L, 8L)),
+                new Vector<>(List.of(static_link, new ImcCONST(SemAn.isType.get(newExpr.type).size())))
+                ));
     }
 
     @Override
-    public Object visit(AstNameExpr nameExpr, Object arg) {
-        return super.visit(nameExpr, arg);
+    public ImcInstr visit(AstDelExpr delExpr, Object arg) {
+        var static_link = (frame_stack.empty()) ? new ImcCONST(0) : new ImcTEMP(frame_stack.peek().FP);
+        return declare_expr(delExpr, new ImcCALL(
+                new MemLabel("del"),
+                new Vector<>(List.of(0L, 8L)),
+                new Vector<>(List.of(static_link, accept_expr(delExpr.expr)))
+        ));
     }
 
     @Override
-    public Object visit(AstNewExpr newExpr, Object arg) {
-        return super.visit(newExpr, arg);
+    public ImcInstr visit(AstFunDecl funDecl, Object arg) {
+        if (funDecl.stmt == null) return null;
+
+        var current_frame = Memory.frames.get(funDecl);
+
+        frame_stack.push(current_frame);
+        var body_stmt = accept_stmt(funDecl.stmt);
+        frame_stack.pop();
+
+        ImcStmt return_stmt = body_stmt;
+        var function_label = new ImcLABEL(current_frame.label);
+
+        if (body_stmt instanceof ImcSTMTS stmts) {
+            return_stmt = stmts.stmts.lastElement();
+        }
+
+        var fun_stmts = new Vector<ImcStmt>();
+        // fun_stmts.add(function_label);
+
+        if (return_stmt instanceof ImcESTMT return_expr) {
+            if (body_stmt instanceof ImcSTMTS stmts) {
+                fun_stmts.addAll(stmts.stmts.subList(0, stmts.stmts.size() - 1));
+            }
+
+            fun_stmts.add(new ImcMOVE(
+                    new ImcTEMP(current_frame.RV), return_expr.expr));
+        } else {
+            if (body_stmt instanceof ImcSTMTS stmts) {
+                fun_stmts.addAll(stmts.stmts);
+            } else {
+                fun_stmts.add(body_stmt);
+            }
+        }
+
+        declare_stmt(funDecl.stmt, new ImcSTMTS(fun_stmts));
+
+        return null;
     }
 
     @Override
-    public Object visit(AstPfxExpr pfxExpr, Object arg) {
-        return super.visit(pfxExpr, arg);
+    public ImcInstr visit(AstNameExpr nameExpr, Object arg) {
+        var access = Memory.accesses.get((AstMemDecl) SemAn.declaredAt.get(nameExpr));
+        if (access instanceof MemAbsAccess abs) {
+            return declare_expr(nameExpr, new ImcMEM(new ImcNAME(abs.label)));
+        } else if (access instanceof MemRelAccess rel) {
+            var current_frame = frame_stack.peek();
+            int hops = current_frame.depth - rel.depth;
+            assert hops >= 0;
+
+            ImcExpr frame_pointer = new ImcTEMP(current_frame.FP);
+
+            for (int i = 0; i < hops; i++) frame_pointer = new ImcMEM(frame_pointer);
+
+            return declare_expr(nameExpr, new ImcMEM(new ImcBINOP(ImcBINOP.Oper.ADD, frame_pointer, new ImcCONST(rel.offset))));
+        } else throw new Report.InternalError();
     }
 
     @Override
-    public Object visit(AstRecExpr recExpr, Object arg) {
-        return super.visit(recExpr, arg);
+    public ImcInstr visit(AstPfxExpr pfxExpr, Object arg) {
+        var operand = accept_expr(pfxExpr.expr);
+        return declare_expr(pfxExpr, switch (pfxExpr.oper) {
+            case ADD -> operand;
+            case SUB -> new ImcBINOP(ImcBINOP.Oper.SUB, new ImcCONST(0), operand);
+            case NOT -> new ImcBINOP(ImcBINOP.Oper.EQU, new ImcCONST(0), operand);
+            case PTR -> expect(operand, ImcMEM.class, pfxExpr).addr;
+        });
     }
 
     @Override
-    public Object visit(AstSfxExpr sfxExpr, Object arg) {
-        return super.visit(sfxExpr, arg);
+    public ImcInstr visit(AstRecExpr recExpr, Object arg) {
+        var rec = accept_mem_addr(recExpr.rec);
+        var rel = (MemRelAccess)Memory.accesses.get((AstMemDecl) SemAn.declaredAt.get(recExpr.comp));
+        return declare_expr(recExpr, new ImcMEM(new ImcBINOP(ImcBINOP.Oper.ADD, rec, new ImcCONST(rel.offset))));
+    }
+
+    @Override
+    public ImcInstr visit(AstSfxExpr sfxExpr, Object arg) {
+        return declare_expr(sfxExpr, switch (sfxExpr.oper) {
+            case PTR -> new ImcMEM(accept_expr(sfxExpr.expr));
+        });
     }
 
 
     // Statements
     @Override
-    public Object visit(AstAssignStmt assignStmt, Object arg) {
-        return super.visit(assignStmt, arg);
+    public ImcInstr visit(AstAssignStmt assignStmt, Object arg) {
+        return declare_stmt(assignStmt, new ImcMOVE(accept_expr(assignStmt.dst), accept_expr(assignStmt.src)));
     }
 
     @Override
-    public Object visit(AstDeclStmt declStmt, Object arg) {
-        return super.visit(declStmt, arg);
+    public ImcInstr visit(AstDeclStmt declStmt, Object arg) {
+        declStmt.decls.accept(this, arg);
+
+        return declare_stmt(declStmt, accept_stmt(declStmt.stmt));
     }
 
     @Override
-    public Object visit(AstExprStmt exprStmt, Object arg) {
-        return super.visit(exprStmt, arg);
+    public ImcInstr visit(AstExprStmt exprStmt, Object arg) {
+        return declare_stmt(exprStmt, new ImcESTMT(accept_expr(exprStmt.expr)));
     }
 
     @Override
-    public Object visit(AstIfStmt ifStmt, Object arg) {
-        return super.visit(ifStmt, arg);
+    public ImcInstr visit(AstIfStmt ifStmt, Object arg) {
+        var positive_label = new MemLabel();
+        var end_label = new MemLabel();
+        var negative_label = (ifStmt.elseStmt != null) ? new MemLabel() : end_label;
+
+        var stmts = new Vector<>(List.of(
+            new ImcCJUMP(accept_expr(ifStmt.cond), positive_label, negative_label),
+            new ImcLABEL(positive_label),
+            accept_stmt(ifStmt.thenStmt),
+            new ImcJUMP(end_label),
+            new ImcLABEL(negative_label)
+        ));
+
+        if (ifStmt.elseStmt != null) stmts.addAll(List.of(
+           accept_stmt(ifStmt.elseStmt),
+           new ImcJUMP(end_label),
+           new ImcLABEL(end_label)
+        ));
+
+        return declare_stmt(ifStmt, new ImcSTMTS(stmts));
     }
 
     @Override
-    public Object visit(AstStmts stmts, Object arg) {
-        return super.visit(stmts, arg);
+    public ImcInstr visit(AstStmts stmts, Object arg) {
+        var v_stmts = new Vector<ImcStmt>();
+        for (var stmt : stmts.stmts) {
+            v_stmts.add(accept_stmt(stmt));
+        }
+        return declare_stmt(stmts, new ImcSTMTS(v_stmts));
     }
 
     @Override
-    public Object visit(AstWhileStmt whileStmt, Object arg) {
-        return super.visit(whileStmt, arg);
+    public ImcInstr visit(AstWhileStmt whileStmt, Object arg) {
+        var condition_label = new MemLabel();
+        var body_label = new MemLabel();
+        var end_label = new MemLabel();
+        return declare_stmt(whileStmt, new ImcSTMTS(new Vector<>(List.of(
+                new ImcLABEL(condition_label),
+                new ImcCJUMP(accept_expr(whileStmt.cond), body_label, end_label),
+                new ImcLABEL(body_label),
+                accept_stmt(whileStmt.bodyStmt),
+                new ImcJUMP(condition_label),
+                new ImcLABEL(end_label)
+        ))));
     }
 }

@@ -17,6 +17,7 @@ import prev23.data.typ.*;
 public class TypeResolver extends AstFullVisitor<SemType, Object> {
 
     public final HashMap<SemRec, HashMap<String, SemType>> record_component_names = new HashMap<>();
+    public final HashMap<SemRec, HashMap<String, AstCmpDecl>> record_component_decls = new HashMap<>();
 
     private static boolean is_void(SemType type) {
         return type.actualType() instanceof SemVoid;
@@ -217,6 +218,7 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
     private SemType visit_record_declarations(AstTrees<AstCmpDecl> trees, Object arg) {
         var cmp_types = new Vector<SemType>(trees.size());
         var cmp_names = new LinkedHashMap<String, SemType>();
+        var cmp_decls = new LinkedHashMap<String, AstCmpDecl>();
         for (AstCmpDecl t : trees) {
             if (t == null) UnexpectedNull();
             if (cmp_names.containsKey(t.name)) {
@@ -227,10 +229,12 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
             expect_non_void_data_type(cmp_type, t, "Records can only have non void data types, but got '%s'");
             cmp_types.add(cmp_type);
             cmp_names.put(t.name, cmp_type);
+            cmp_decls.put(t.name, t);
         }
 
         var rec = new SemRec(cmp_types);
         record_component_names.put(rec, cmp_names);
+        record_component_decls.put(rec, cmp_decls);
         return rec;
     }
 
@@ -576,8 +580,11 @@ public class TypeResolver extends AstFullVisitor<SemType, Object> {
                 "Type '%s' is not a record and can not be indexed as one");
 
         var comp_name = recExpr.comp.name;
-        if (!record_component_names.get(rec_type).containsKey(comp_name))
+        if (!record_component_names.get(rec_type).containsKey(comp_name) ||
+            !record_component_decls.get(rec_type).containsKey(comp_name))
             TypeError(recExpr.comp, String.format("Record does not contain component named '%s'", comp_name));
+
+        SemAn.declaredAt.put(recExpr.comp, record_component_decls.get(rec_type).get(comp_name));
 
         return declare_of(recExpr, record_component_names.get(rec_type).get(comp_name));
     }

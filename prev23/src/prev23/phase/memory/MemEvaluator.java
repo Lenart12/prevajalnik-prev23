@@ -35,10 +35,6 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
         }
 
         public MemScope record_scope() {
-            if (depth == -1) {
-                return this;
-            }
-
             var record_scope = new MemScope();
             record_scope.depth = -1;
 
@@ -55,7 +51,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
         }
 
         public void add_frame(AstFunDecl decl) {
-            var frame = new MemFrame(get_label(decl), depth - 1, -locals_size, args_size);
+            var frame = new MemFrame(get_label(decl), depth, -locals_size, args_size);
             Memory.frames.put(decl, frame);
         }
 
@@ -90,8 +86,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
                     access = new MemRelAccess(mem_size, locals_size, access_depth);
                 } else if (decl instanceof AstCmpDecl) {
                     access = new MemRelAccess(mem_size, locals_size, access_depth);
-                    if (!(type instanceof SemRec))
-                        locals_size += mem_size;
+                    locals_size += mem_size;
                 }
             }
 

@@ -131,7 +131,8 @@ fun test_decl(): char = let typ __char = _char; var c3: __char; in c3;
 fun test_block(): ^char = {
     test_ass_void();
     test_while_void();
-    ^test_decl()
+    test_decl();
+    "prev23"
 };
 
 typ deep_record = {
@@ -242,7 +243,7 @@ fun test_rgb(r1: ^r, g1: ^g, b1: ^b) : bool = (r1 == g1) & (r1 == b1) & (g1 == b
 fun test_lvalue_ptr(i1: ^int): void = i1^ = 5;
 # fun test_lvalue_const(): void = 5 = 4;
 # fun test_lvalue_ptr_error(i1: int): void = ^i1 = (nil: ^int); # Error
-fun test_warn_non_lvalue_ptr(): ^int = ^5;
+fun test_warn_non_lvalue_ptr(): ^int = ^v1;
 
 
 fun f(): int = f();
