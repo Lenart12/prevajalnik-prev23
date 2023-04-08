@@ -11,10 +11,7 @@ import prev23.data.ast.visitor.AstFullVisitor;
 import prev23.data.imc.code.ImcInstr;
 import prev23.data.imc.code.expr.*;
 import prev23.data.imc.code.stmt.*;
-import prev23.data.mem.MemAbsAccess;
-import prev23.data.mem.MemFrame;
-import prev23.data.mem.MemLabel;
-import prev23.data.mem.MemRelAccess;
+import prev23.data.mem.*;
 import prev23.data.typ.SemArr;
 import prev23.data.typ.SemChar;
 import prev23.phase.memory.Memory;
@@ -24,7 +21,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.Vector;
 
-public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
+public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
     private final Stack<MemFrame> frame_stack = new Stack<>();
 
     private static <T> T expect(Object o, Class<T> expected_class, Locatable ast) {
@@ -41,8 +38,12 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
         return expect(ast.accept(this, null), type, ast);
     }
 
-    private ImcStmt accept_stmt(AstTree ast) {
-        return accept_and_expect(ast, ImcStmt.class);
+    private <T extends ImcInstr> T accept_and_expect(AstTree ast, Class<T> type, Boolean is_return) {
+        return expect(ast.accept(this, is_return), type, ast);
+    }
+
+    private ImcStmt accept_stmt(AstTree ast, boolean is_return) {
+        return accept_and_expect(ast, ImcStmt.class, is_return);
     }
 
     private ImcExpr accept_expr(AstTree ast) {
@@ -82,13 +83,24 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
         return e;
     }
 
-    private static ImcInstr declare_stmt(AstStmt ast, ImcStmt s) {
-        ImcGen.stmtImc.put(ast, s);
-        return s;
+    private ImcInstr declare_stmt(AstStmt ast, ImcStmt s, boolean is_return) {
+        var ret_s = s;
+        if (is_return) {
+            ImcExpr rv = new ImcCONST(0);
+            if (s instanceof ImcESTMT expr) {
+                ret_s = new ImcMOVE(new ImcTEMP(frame_stack.peek().RV), expr.expr);
+            } else {
+                ret_s = new ImcSTMTS(new Vector<>(List.of(
+                    s, new ImcMOVE(new ImcTEMP(frame_stack.peek().RV), new ImcCONST(0))
+                )));
+            }
+        }
+        ImcGen.stmtImc.put(ast, ret_s);
+        return ret_s;
     }
 
     @Override
-    public ImcInstr visit(AstArrExpr arrExpr, Object arg) {
+    public ImcInstr visit(AstArrExpr arrExpr, Boolean is_return) {
         var arr = accept_mem_addr(arrExpr.arr);
         var idx = accept_expr(arrExpr.idx);
         var element_size = ((SemArr) SemAn.ofType.get(arrExpr.arr).actualType()).elemType.size();
@@ -98,7 +110,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstAtomExpr atomExpr, Object arg) {
+    public ImcInstr visit(AstAtomExpr atomExpr, Boolean is_return) {
         return declare_expr(atomExpr, switch (atomExpr.type) {
             case VOID, PTR -> new ImcCONST(0);
             case CHAR -> new ImcCONST(atomExpr.value.codePointAt(1));
@@ -109,7 +121,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstBinExpr binExpr, Object arg) {
+    public ImcInstr visit(AstBinExpr binExpr, Boolean is_return) {
         var lhs = accept_expr(binExpr.fstExpr);
         var rhs = accept_expr(binExpr.sndExpr);
         return declare_expr(binExpr, switch (binExpr.oper) {
@@ -130,7 +142,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstCallExpr callExpr, Object arg) {
+    public ImcInstr visit(AstCallExpr callExpr, Boolean is_return) {
         Vector<Long> offsets = new Vector<>();
         Vector<ImcExpr> args = new Vector<>();
 
@@ -160,7 +172,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstCastExpr castExpr, Object arg) {
+    public ImcInstr visit(AstCastExpr castExpr, Boolean is_return) {
         var cast_from = accept_expr(castExpr.expr);
 
         if (SemAn.isType.get(castExpr.type).actualType() instanceof SemChar) {
@@ -170,7 +182,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstNewExpr newExpr, Object arg) {
+    public ImcInstr visit(AstNewExpr newExpr, Boolean is_return) {
         var static_link = (frame_stack.empty()) ? new ImcCONST(0) : new ImcTEMP(frame_stack.peek().FP);
         return declare_expr(newExpr, new ImcCALL(
                 new MemLabel("new"),
@@ -180,7 +192,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstDelExpr delExpr, Object arg) {
+    public ImcInstr visit(AstDelExpr delExpr, Boolean is_return) {
         var static_link = (frame_stack.empty()) ? new ImcCONST(0) : new ImcTEMP(frame_stack.peek().FP);
         return declare_expr(delExpr, new ImcCALL(
                 new MemLabel("del"),
@@ -190,47 +202,20 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstFunDecl funDecl, Object arg) {
+    public ImcInstr visit(AstFunDecl funDecl, Boolean is_return) {
         if (funDecl.stmt == null) return null;
 
         var current_frame = Memory.frames.get(funDecl);
 
         frame_stack.push(current_frame);
-        var body_stmt = accept_stmt(funDecl.stmt);
+        accept_stmt(funDecl.stmt, true);
         frame_stack.pop();
-
-        ImcStmt return_stmt = body_stmt;
-        var function_label = new ImcLABEL(current_frame.label);
-
-        if (body_stmt instanceof ImcSTMTS stmts) {
-            return_stmt = stmts.stmts.lastElement();
-        }
-
-        var fun_stmts = new Vector<ImcStmt>();
-        // fun_stmts.add(function_label);
-
-        if (return_stmt instanceof ImcESTMT return_expr) {
-            if (body_stmt instanceof ImcSTMTS stmts) {
-                fun_stmts.addAll(stmts.stmts.subList(0, stmts.stmts.size() - 1));
-            }
-
-            fun_stmts.add(new ImcMOVE(
-                    new ImcTEMP(current_frame.RV), return_expr.expr));
-        } else {
-            if (body_stmt instanceof ImcSTMTS stmts) {
-                fun_stmts.addAll(stmts.stmts);
-            } else {
-                fun_stmts.add(body_stmt);
-            }
-        }
-
-        declare_stmt(funDecl.stmt, new ImcSTMTS(fun_stmts));
-
+        
         return null;
     }
 
     @Override
-    public ImcInstr visit(AstNameExpr nameExpr, Object arg) {
+    public ImcInstr visit(AstNameExpr nameExpr, Boolean is_return) {
         var access = Memory.accesses.get((AstMemDecl) SemAn.declaredAt.get(nameExpr));
         if (access instanceof MemAbsAccess abs) {
             return declare_expr(nameExpr, new ImcMEM(new ImcNAME(abs.label)));
@@ -248,7 +233,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstPfxExpr pfxExpr, Object arg) {
+    public ImcInstr visit(AstPfxExpr pfxExpr, Boolean is_return) {
         var operand = accept_expr(pfxExpr.expr);
         return declare_expr(pfxExpr, switch (pfxExpr.oper) {
             case ADD -> operand;
@@ -259,14 +244,14 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
     }
 
     @Override
-    public ImcInstr visit(AstRecExpr recExpr, Object arg) {
+    public ImcInstr visit(AstRecExpr recExpr, Boolean is_return) {
         var rec = accept_mem_addr(recExpr.rec);
         var rel = (MemRelAccess)Memory.accesses.get((AstMemDecl) SemAn.declaredAt.get(recExpr.comp));
         return declare_expr(recExpr, new ImcMEM(new ImcBINOP(ImcBINOP.Oper.ADD, rec, new ImcCONST(rel.offset))));
     }
 
     @Override
-    public ImcInstr visit(AstSfxExpr sfxExpr, Object arg) {
+    public ImcInstr visit(AstSfxExpr sfxExpr, Boolean is_return) {
         return declare_expr(sfxExpr, switch (sfxExpr.oper) {
             case PTR -> new ImcMEM(accept_expr(sfxExpr.expr));
         });
@@ -275,24 +260,24 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
 
     // Statements
     @Override
-    public ImcInstr visit(AstAssignStmt assignStmt, Object arg) {
-        return declare_stmt(assignStmt, new ImcMOVE(accept_expr(assignStmt.dst), accept_expr(assignStmt.src)));
+    public ImcInstr visit(AstAssignStmt assignStmt, Boolean is_return) {
+        return declare_stmt(assignStmt, new ImcMOVE(accept_expr(assignStmt.dst), accept_expr(assignStmt.src)), is_return);
     }
 
     @Override
-    public ImcInstr visit(AstDeclStmt declStmt, Object arg) {
-        declStmt.decls.accept(this, arg);
+    public ImcInstr visit(AstDeclStmt declStmt, Boolean is_return) {
+        declStmt.decls.accept(this, false);
 
-        return declare_stmt(declStmt, accept_stmt(declStmt.stmt));
+        return declare_stmt(declStmt, accept_stmt(declStmt.stmt, is_return), false);
     }
 
     @Override
-    public ImcInstr visit(AstExprStmt exprStmt, Object arg) {
-        return declare_stmt(exprStmt, new ImcESTMT(accept_expr(exprStmt.expr)));
+    public ImcInstr visit(AstExprStmt exprStmt, Boolean is_return) {
+        return declare_stmt(exprStmt, new ImcESTMT(accept_expr(exprStmt.expr)), is_return);
     }
 
     @Override
-    public ImcInstr visit(AstIfStmt ifStmt, Object arg) {
+    public ImcInstr visit(AstIfStmt ifStmt, Boolean is_return) {
         var positive_label = new MemLabel();
         var end_label = new MemLabel();
         var negative_label = (ifStmt.elseStmt != null) ? new MemLabel() : end_label;
@@ -300,31 +285,32 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
         var stmts = new Vector<>(List.of(
             new ImcCJUMP(accept_expr(ifStmt.cond), positive_label, negative_label),
             new ImcLABEL(positive_label),
-            accept_stmt(ifStmt.thenStmt),
+            accept_stmt(ifStmt.thenStmt, false),
             new ImcJUMP(end_label),
             new ImcLABEL(negative_label)
         ));
 
         if (ifStmt.elseStmt != null) stmts.addAll(List.of(
-           accept_stmt(ifStmt.elseStmt),
+           accept_stmt(ifStmt.elseStmt, false),
            new ImcJUMP(end_label),
            new ImcLABEL(end_label)
         ));
 
-        return declare_stmt(ifStmt, new ImcSTMTS(stmts));
+        return declare_stmt(ifStmt, new ImcSTMTS(stmts), is_return);
     }
 
     @Override
-    public ImcInstr visit(AstStmts stmts, Object arg) {
+    public ImcInstr visit(AstStmts stmts, Boolean is_return) {
         var v_stmts = new Vector<ImcStmt>();
+        int i = stmts.stmts.size();
         for (var stmt : stmts.stmts) {
-            v_stmts.add(accept_stmt(stmt));
+            v_stmts.add(accept_stmt(stmt, is_return && --i == 0));
         }
-        return declare_stmt(stmts, new ImcSTMTS(v_stmts));
+        return declare_stmt(stmts, new ImcSTMTS(v_stmts), false);
     }
 
     @Override
-    public ImcInstr visit(AstWhileStmt whileStmt, Object arg) {
+    public ImcInstr visit(AstWhileStmt whileStmt, Boolean is_return) {
         var condition_label = new MemLabel();
         var body_label = new MemLabel();
         var end_label = new MemLabel();
@@ -332,9 +318,9 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Object> {
                 new ImcLABEL(condition_label),
                 new ImcCJUMP(accept_expr(whileStmt.cond), body_label, end_label),
                 new ImcLABEL(body_label),
-                accept_stmt(whileStmt.bodyStmt),
+                accept_stmt(whileStmt.bodyStmt, false),
                 new ImcJUMP(condition_label),
                 new ImcLABEL(end_label)
-        ))));
+        ))), is_return);
     }
 }

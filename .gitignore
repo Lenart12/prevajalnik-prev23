@@ -38,6 +38,8 @@ hs_err_pid*
 **/*.memory.xml
 **/*.imcgen.html
 **/*.imcgen.xml
+**/*.imclin.html
+**/*.imclin.xml
 
 # antlr
 **/PrevLexer.tokens
