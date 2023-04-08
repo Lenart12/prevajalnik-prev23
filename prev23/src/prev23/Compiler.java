@@ -9,6 +9,7 @@ import prev23.phase.abstr.*;
 import prev23.phase.seman.*;
 import prev23.phase.memory.*;
 import prev23.phase.imcgen.*;
+import prev23.phase.imclin.*;
 
 /**
  * The compiler.
@@ -43,7 +44,7 @@ public class Compiler {
 	// COMMAND LINE ARGUMENTS
 
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen";
+	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen|imclin";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
@@ -134,7 +135,7 @@ public class Compiler {
 				try (SemAn seman = new SemAn()) {
 					Abstr.tree.accept(new NameResolver(), null);
 					Abstr.tree.accept(new TypeResolver(), null);
-					Abstr.tree.accept(new AddrResolver(), null);
+					// Abstr.tree.accept(new AddrResolver(), null);
 					AbsLogger logger = new AbsLogger(seman.logger);
 					logger.addSubvisitor(new SemLogger(seman.logger));
 					Abstr.tree.accept(logger, null);
@@ -163,6 +164,17 @@ public class Compiler {
 					Abstr.tree.accept(logger, "Decls");
 				}
 				if (Compiler.cmdLineArgValue("--target-phase").equals("imcgen"))
+					break;
+
+				// Linearization of intermediate code.
+				try (ImcLin imclin = new ImcLin()) {
+					Abstr.tree.accept(new ChunkGenerator(), null);
+					imclin.log();
+
+					Interpreter interpreter = new Interpreter(ImcLin.dataChunks(), ImcLin.codeChunks());
+					System.out.println("EXIT CODE: " + interpreter.run("_main"));
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("imclin"))
 					break;
 			}
 
