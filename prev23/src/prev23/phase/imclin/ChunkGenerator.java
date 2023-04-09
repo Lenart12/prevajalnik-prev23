@@ -27,6 +27,9 @@ public class ChunkGenerator extends AstFullVisitor<Object, Object> {
         body.add(new ImcJUMP(exit_label));
 
         ImcLin.addCodeChunk(new LinCodeChunk(frame, body, entry_label, exit_label));
+
+        funDecl.stmt.accept(this, o);
+
         return null;
     }
 

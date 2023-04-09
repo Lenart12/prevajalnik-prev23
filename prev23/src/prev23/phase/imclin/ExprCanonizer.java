@@ -32,7 +32,13 @@ public class ExprCanonizer implements ImcVisitor<ImcExpr, Vector<ImcStmt>> {
 
         var lin_args = new Vector<ImcExpr>();
         for (var arg : call.args) {
-            lin_args.add(arg.accept(this, lin));
+            var lin_arg = arg.accept(this, lin);
+            if (!(lin_arg instanceof ImcTEMP || lin_arg instanceof ImcCONST || lin_arg instanceof ImcNAME)) {
+                var temp = new ImcTEMP(new MemTemp());
+                lin.add(new ImcMOVE(temp, lin_arg));
+                lin_arg = temp;
+            }
+            lin_args.add(lin_arg);
         }
 
         var lin_call = new ImcCALL(call.label, call.offs, lin_args);

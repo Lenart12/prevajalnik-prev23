@@ -114,7 +114,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
         return declare_expr(atomExpr, switch (atomExpr.type) {
             case VOID, PTR -> new ImcCONST(0);
             case CHAR -> new ImcCONST(atomExpr.value.codePointAt(1));
-            case INT -> new ImcCONST(Integer.parseInt(atomExpr.value));
+            case INT -> new ImcCONST(Long.parseLong(atomExpr.value));
             case BOOL -> new ImcCONST(atomExpr.value.equals("true") ? 1 : 0);
             case STR -> new ImcNAME(Memory.strings.get(atomExpr).label);
         });
@@ -234,12 +234,17 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
 
     @Override
     public ImcInstr visit(AstPfxExpr pfxExpr, Boolean is_return) {
-        var operand = accept_expr(pfxExpr.expr);
         return declare_expr(pfxExpr, switch (pfxExpr.oper) {
-            case ADD -> operand;
-            case SUB -> new ImcBINOP(ImcBINOP.Oper.SUB, new ImcCONST(0), operand);
-            case NOT -> new ImcBINOP(ImcBINOP.Oper.EQU, new ImcCONST(0), operand);
-            case PTR -> expect(operand, ImcMEM.class, pfxExpr).addr;
+            case ADD -> accept_expr(pfxExpr.expr);
+            case SUB -> {
+                if (pfxExpr.expr instanceof AstAtomExpr atom && atom.type == AstAtomExpr.Type.INT) {
+                    yield new ImcCONST(Long.parseLong("-" + atom.value));
+                } else {
+                    yield new ImcBINOP(ImcBINOP.Oper.SUB, new ImcCONST(0), accept_expr(pfxExpr.expr));
+                }
+            }
+            case NOT -> new ImcBINOP(ImcBINOP.Oper.EQU, new ImcCONST(0), accept_expr(pfxExpr.expr));
+            case PTR -> expect(accept_expr(pfxExpr.expr), ImcMEM.class, pfxExpr).addr;
         });
     }
 
