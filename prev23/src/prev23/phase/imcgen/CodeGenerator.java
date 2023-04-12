@@ -283,11 +283,14 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
 
     @Override
     public ImcInstr visit(AstIfStmt ifStmt, Boolean is_return) {
+        var start_label = new MemLabel();
         var positive_label = new MemLabel();
+        var negative_label =  new MemLabel();
         var end_label = new MemLabel();
-        var negative_label = (ifStmt.elseStmt != null) ? new MemLabel() : end_label;
 
         var stmts = new Vector<>(List.of(
+            new ImcJUMP(start_label),
+            new ImcLABEL(start_label),
             new ImcCJUMP(accept_expr(ifStmt.cond), positive_label, negative_label),
             new ImcLABEL(positive_label),
             accept_stmt(ifStmt.thenStmt, false),
@@ -295,10 +298,13 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
             new ImcLABEL(negative_label)
         ));
 
-        if (ifStmt.elseStmt != null) stmts.addAll(List.of(
-           accept_stmt(ifStmt.elseStmt, false),
-           new ImcJUMP(end_label),
-           new ImcLABEL(end_label)
+        if (ifStmt.elseStmt != null) stmts.add(
+           accept_stmt(ifStmt.elseStmt, false)
+        );
+
+        stmts.addAll(List.of(
+            new ImcJUMP(end_label),
+            new ImcLABEL(end_label)
         ));
 
         return declare_stmt(ifStmt, new ImcSTMTS(stmts), is_return);
@@ -316,10 +322,15 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
 
     @Override
     public ImcInstr visit(AstWhileStmt whileStmt, Boolean is_return) {
+        var start_label = new MemLabel();
         var condition_label = new MemLabel();
         var body_label = new MemLabel();
         var end_label = new MemLabel();
+
         return declare_stmt(whileStmt, new ImcSTMTS(new Vector<>(List.of(
+                new ImcJUMP(start_label),
+                new ImcLABEL(start_label),
+                new ImcJUMP(condition_label),
                 new ImcLABEL(condition_label),
                 new ImcCJUMP(accept_expr(whileStmt.cond), body_label, end_label),
                 new ImcLABEL(body_label),

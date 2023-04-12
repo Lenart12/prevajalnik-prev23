@@ -161,7 +161,7 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
             return null;
 
         var value = atomExpr.value.replace("\\\"", "\"");
-        var const_size = (value.length() + 1) * (new SemChar().size());
+        var const_size = (value.length() - 1) * (new SemChar().size());
 
         Memory.strings.put(atomExpr, new MemAbsAccess(const_size, new MemLabel(), value));
         return null;
