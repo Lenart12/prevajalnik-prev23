@@ -10,6 +10,7 @@ import prev23.phase.seman.*;
 import prev23.phase.memory.*;
 import prev23.phase.imcgen.*;
 import prev23.phase.imclin.*;
+import prev23.phase.asmgen.*;
 
 /**
  * The compiler.
@@ -44,7 +45,7 @@ public class Compiler {
 	// COMMAND LINE ARGUMENTS
 
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen|imclin";
+	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen|imclin|asmgen";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
@@ -171,10 +172,19 @@ public class Compiler {
 					Abstr.tree.accept(new ChunkGenerator(), null);
 					imclin.log();
 
-					Interpreter interpreter = new Interpreter(ImcLin.dataChunks(), ImcLin.codeChunks());
-					System.out.println("EXIT CODE: " + interpreter.run("_main"));
+					// Interpreter interpreter = new Interpreter(ImcLin.dataChunks(),
+					// ImcLin.codeChunks());
+					// System.out.println("EXIT CODE: " + interpreter.run("_main"));
 				}
 				if (Compiler.cmdLineArgValue("--target-phase").equals("imclin"))
+					break;
+
+				// Machine code generation.
+				try (AsmGen asmgen = new AsmGen()) {
+					asmgen.genAsmCodes();
+					asmgen.log();
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("asmgen"))
 					break;
 			}
 

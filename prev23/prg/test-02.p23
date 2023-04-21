@@ -1,0 +1,11 @@
+var seed:int;
+fun random():int={seed=(75*(seed+1)-1)%65537;seed};
+
+fun main():int=
+      let var i:int;
+      in
+      {
+        seed=2023;
+        i=0;while i<2023 do {random();i=i+1};
+        seed
+      };

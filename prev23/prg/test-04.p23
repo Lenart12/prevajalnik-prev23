@@ -1,0 +1,84 @@
+fun putChar(c:char):void;
+fun endLine():void=putChar((10:char));
+    
+fun putInt(n:int):void=
+      let var buffer:[32]char;
+          var ptr:int;
+          var minus:bool;
+      in
+      if n==0 then putChar('0') else
+      {
+        minus=n<0;if n<0 then n=-n;
+        ptr=0;
+        while n>0 do {
+          buffer[ptr]=(((n%10)+('0':int)):char);
+          ptr=ptr+1;
+          n=n/10
+        };
+        if minus then putChar('-');
+        while ptr>0 do {
+          ptr=ptr-1;
+          putChar(buffer[ptr])
+        } 
+      };
+
+fun queens(board:^[16]int,n:int,nn:int):int=
+      let var solutions:int;
+      in
+      {
+        if n==nn then {
+          let var i:int;
+              var j:int;
+          in {
+            i=0;
+            while i<nn do {
+              j=0;
+              while j<nn do {
+                if board^[i]==j then putChar('O')
+                                else putChar('.');
+                j=j+1
+              };
+              endLine();
+              i=i+1
+            };
+            endLine()
+          };
+          solutions=1
+        }
+        else
+        {
+          solutions=0;
+          let var i:int;
+              var j:int;
+              var ok:bool;
+              fun abs(n:int):int={if n<0 then n=-n;n};
+          in
+          {
+            i=0;
+            while i<nn do {
+              ok=true;
+              j=0;
+              while j<n do {
+                if board^[j]==i then ok=false;
+                if abs(board^[j]-i)==abs(j-n) then ok=false;
+                j=j+1
+              };
+              if ok then {
+                board^[n]=i;
+                solutions=solutions+queens(board,n+1,nn)
+              };
+              i=i+1
+            }
+          }          
+        };
+        solutions
+      };
+      
+fun main():int=
+      let var board:[16]int;
+          var solutions:int;
+      in
+      {  
+        solutions=queens(^board,0,5);
+        solutions
+      };

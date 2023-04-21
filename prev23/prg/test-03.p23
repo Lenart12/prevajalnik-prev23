@@ -1,0 +1,62 @@
+var seed:int;
+fun random():int={seed=(75*(seed+1)-1)%65537;seed};
+
+fun putChar(c:char):void;
+fun endLine():void=putChar((10:char));
+    
+fun putInt(n:int):void=
+      let var buffer:[32]char;
+          var ptr:int;
+          var minus:bool;
+      in
+      if n==0 then putChar('0') else
+      {
+        minus=n<0;if n<0 then n=-n;
+        ptr=0;
+        while n>0 do {
+          buffer[ptr]=(((n%10)+('0':int)):char);
+          ptr=ptr+1;
+          n=n/10
+        };
+        if minus then putChar('-');
+        while ptr>0 do {
+          ptr=ptr-1;
+          putChar(buffer[ptr])
+        } 
+      };
+      
+fun bubblesort(data:^[100]int):void=
+      let var i:int;
+          var j:int;
+          var tmp:int;
+      in
+      {
+        i=0;
+        while i<99 do {
+          j=0;
+          while j<99-i do {
+            if data^[j]>data^[j+1] then {
+              tmp=data^[j];
+              data^[j]=data^[j+1];
+              data^[j+1]=tmp
+            };
+            j=j+1
+          };
+          i=i+1
+        }
+      };
+      
+fun main():int=
+      let var numbers:[100]int;
+          var sum:int;
+          var i:int;
+      in
+      {  
+         i=0;while i<100 do {numbers[i]=random()%99;i=i+1};
+         i=0;while i<100 do {putInt(numbers[i]);putChar(' ');i=i+1};
+         sum=0;i=0;while i<100 do {sum=sum+numbers[i];i=i+1};putInt(sum);endLine();
+         bubblesort(^numbers);
+         i=0;while i<100 do {putInt(numbers[i]);putChar(' ');i=i+1};
+         sum=0;i=0;while i<100 do {sum=sum+numbers[i];i=i+1};putInt(sum);endLine();  
+         0
+      };

@@ -1,0 +1,10 @@
+fun f1(p1:int):int=
+      let var v1:int;
+          fun f2(p2:int):int=
+                let var v2:int;
+                    fun f3(p3:int):int=
+                          let var v3:int;
+                          in {v3=30;p1*v1+p2*v2+p3*v3};
+                in {v2=20;p1*v1+p2*v2+f3(3)};
+      in {v1=10;p1*v1+f2(2)};
+fun main():int=f1(1);
