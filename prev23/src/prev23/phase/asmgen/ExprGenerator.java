@@ -66,7 +66,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             var dst = new MemTemp();
                             return new MatchingResult(
                                     1, dst, new AsmOPER(
-                                    String.format("\t\tLDA\t`d0,%s", name),
+                                    String.format("\t\tLDA\t`d0, %s", name),
                                     new Vector<>(),
                                     new Vector<>(List.of(dst)),
                                     new Vector<>()
@@ -86,7 +86,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                             return new MatchingResult(
                                     src_result.cost + 10, dst, src_result.instructions, new AsmOPER(
-                                    "\t\tLDO\t`d0,`s0,0",
+                                    "\t\tLDO\t`d0, `s0, #0",
                                     new Vector<>(List.of(src_result.temp)),
                                     new Vector<>(List.of(dst)),
                                     new Vector<>()
@@ -98,7 +98,8 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                     new Tile() {
                         @Override
                         public MatchingResult try_match(ImcExpr expr) {
-                            if (!(expr instanceof ImcBINOP binop) || binop.oper != ImcBINOP.Oper.MUL) return Tile.Invalid();
+                            if (!(expr instanceof ImcBINOP binop) || binop.oper != ImcBINOP.Oper.MUL)
+                                return Tile.Invalid();
 
                             ImcCONST imc_const = null;
                             ImcExpr imc_other = null;
@@ -123,7 +124,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                             var addu_val = imc_const.value;
 
-                            if (addu_val!=2 && addu_val!=4 && addu_val!=8 && addu_val!=16)
+                            if (addu_val != 2 && addu_val != 4 && addu_val != 8 && addu_val != 16)
                                 return Tile.Invalid();
 
 
@@ -142,7 +143,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                             cost += 1;
                             instructions.add(new AsmOPER(
-                                    String.format("\t\t%dADDU\t`d0,`s0,`s1", addu_val),
+                                    String.format("\t\t%dADDU\t`d0, `s0, `s1", addu_val),
                                     new Vector<>(List.of(const_result.temp, other_result.temp)),
                                     new Vector<>(List.of(dst)),
                                     new Vector<>()
@@ -173,13 +174,13 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case EQU, NEQ, LTH, GTH, LEQ, GEQ -> {
                                     cost += 2;
                                     instructions.add(new AsmOPER(
-                                            "\t\tCMP\t`d0,`s0,`s1",
+                                            "\t\tCMP\t`d0, `s0, `s1",
                                             new Vector<>(List.of(lhs_result.temp, rhs_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
                                     ));
                                     instructions.add(new AsmOPER(
-                                            String.format("\t\tZS%s\t`d0,`s0,1", switch (binop.oper) {
+                                            String.format("\t\tZS%s\t`d0, `s0, #1", switch (binop.oper) {
                                                 case EQU -> "Z";
                                                 case NEQ -> "NZ";
                                                 case LTH -> "N";
@@ -197,7 +198,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case OR, AND, ADD, SUB -> {
                                     cost += 1;
                                     instructions.add(new AsmOPER(
-                                            String.format("\t\t%s\t`d0,`s0,`s1", binop.oper),
+                                            String.format("\t\t%s\t`d0, `s0, `s1", binop.oper),
                                             new Vector<>(List.of(lhs_result.temp, rhs_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
@@ -206,7 +207,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case MUL -> {
                                     cost += 10;
                                     instructions.add(new AsmOPER(
-                                            "\t\tMUL\t`d0,`s0,`s1",
+                                            "\t\tMUL\t`d0, `s0, `s1",
                                             new Vector<>(List.of(lhs_result.temp, rhs_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
@@ -215,7 +216,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case DIV -> {
                                     cost += 60;
                                     instructions.add(new AsmOPER(
-                                            "\t\tDIV\t`d0,`s0,`s1",
+                                            "\t\tDIV\t`d0, `s0, `s1",
                                             new Vector<>(List.of(lhs_result.temp, rhs_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
@@ -224,13 +225,13 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case MOD -> {
                                     cost += 61;
                                     instructions.add(new AsmOPER(
-                                            "\t\tDIV\t`d0,`s0,`s1",
+                                            "\t\tDIV\t`d0, `s0, `s1",
                                             new Vector<>(List.of(lhs_result.temp, rhs_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
                                     ));
                                     instructions.add(new AsmOPER(
-                                            "\t\tGET\t`d0,rR",
+                                            "\t\tGET\t`d0, rR",
                                             new Vector<>(),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
@@ -239,6 +240,41 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             }
 
                             return new MatchingResult(cost, dst, instructions);
+                        }
+                    },
+                    // Fast twos division
+                    new Tile() {
+                        @Override
+                        public MatchingResult try_match(ImcExpr expr) {
+                            if (!(expr instanceof ImcBINOP binop)
+                                    || binop.oper != ImcBINOP.Oper.DIV
+                                    || !(binop.sndExpr instanceof ImcCONST div_const)) return Tile.Invalid();
+
+                            var val = div_const.value;
+
+                            if (val <= 0 || (val & -val) != val) return Tile.Invalid();
+
+                            var shift_count = 63 - Long.numberOfLeadingZeros(val);
+
+                            var lhs_result = match_any_tile(binop.fstExpr);
+
+                            if (!lhs_result.is_valid())
+                                return Tile.Invalid();
+
+                            var instructions = new Vector<AsmInstr>(lhs_result.instructions);
+
+                            var dst = new MemTemp();
+
+                            instructions.add(
+                                    new AsmOPER(
+                                            String.format("\t\tSL\t`d0, `s0, #%d", shift_count),
+                                            new Vector<>(List.of(lhs_result.temp)),
+                                            new Vector<>(List.of(dst)),
+                                            new Vector<>()
+                                    )
+                            );
+
+                            return new MatchingResult(1, dst, instructions);
                         }
                     },
                     // Call
@@ -263,7 +299,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 var offset = call.offs.get(i++);
                                 if (offset < 256) {
                                     instructions.add(new AsmOPER(
-                                            String.format("\t\tSTO\t`s0,$254,%d", offset),
+                                            String.format("\t\tSTO\t`s0, $254, #%d", offset),
                                             new Vector<>(List.of(arg_result.temp)),
                                             new Vector<>(),
                                             new Vector<>()
@@ -272,7 +308,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                     var const_result = match_any_tile(new ImcCONST(offset));
                                     instructions.addAll(const_result.instructions);
                                     instructions.add(new AsmOPER(
-                                            "\t\tSTO\t`s0,$254,`s1",
+                                            "\t\tSTO\t`s0, $254, `s1",
                                             new Vector<>(List.of(arg_result.temp, const_result.temp)),
                                             new Vector<>(),
                                             new Vector<>()
@@ -282,7 +318,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                             cost += 1;
                             instructions.add(new AsmOPER(
-                                    String.format("\t\tPUSHJ\t$252,%s", call.label.name),
+                                    String.format("\t\tPUSHJ\t$252, %s", call.label.name),
                                     new Vector<>(),
                                     new Vector<>(),
                                     new Vector<>(List.of(call.label))
@@ -292,7 +328,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                             cost += 10;
                             instructions.add(new AsmOPER(
-                                    "\t\tLDO\t`d0,$254,0",
+                                    "\t\tLDO\t`d0, $254, #0",
                                     new Vector<>(),
                                     new Vector<>(List.of(dst)),
                                     new Vector<>()
@@ -313,10 +349,10 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             long cost = 0;
 
                             var dst = new MemTemp();
-
+                            
                             cost += 1;
                             instructions.add(new AsmOPER(
-                                    String.format("\t\tSET\t`d0,%d", value & 0xffff),
+                                    String.format("\t\tSET\t`d0, #%d", value & 0xffff),
                                     new Vector<>(),
                                     new Vector<>(List.of(dst)),
                                     new Vector<>()
@@ -325,7 +361,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             if ((value & 0xffff0000L) != 0) {
                                 cost += 1;
                                 instructions.add(new AsmOPER(
-                                        String.format("\t\tORML\t`d0,%d", (value & 0xffff0000L) >>> 16),
+                                        String.format("\t\tORML\t`d0, #%d", (value & 0xffff0000L) >>> 16),
                                         new Vector<>(),
                                         new Vector<>(List.of(dst)),
                                         new Vector<>()
@@ -335,7 +371,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             if ((value & 0xffff00000000L) != 0) {
                                 cost += 1;
                                 instructions.add(new AsmOPER(
-                                        String.format("\t\tORMH\t`d0,%d", (value & 0xffff00000000L) >>> 32),
+                                        String.format("\t\tORMH\t`d0, #%d", (value & 0xffff00000000L) >>> 32),
                                         new Vector<>(),
                                         new Vector<>(List.of(dst)),
                                         new Vector<>()
@@ -345,7 +381,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             if ((value & 0xffff000000000000L) != 0) {
                                 cost += 1;
                                 instructions.add(new AsmOPER(
-                                        String.format("\t\tORH\t`d0,%d", (value & 0xffff000000000000L) >>> 48),
+                                        String.format("\t\tORH\t`d0, #%d", (value & 0xffff000000000000L) >>> 48),
                                         new Vector<>(),
                                         new Vector<>(List.of(dst)),
                                         new Vector<>()
@@ -353,6 +389,29 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                             }
 
                             return new MatchingResult(cost, dst, instructions);
+                        }
+                    },
+                    // 8-bit negative constant
+                    new Tile() {
+                        @Override
+                        public MatchingResult try_match(ImcExpr expr) {
+                            if (!(expr instanceof ImcCONST cons)) return Tile.Invalid();
+
+                            var value = cons.value;
+
+                            if (value>=0 || value < -256)
+                                return Tile.Invalid();
+
+                            var dst = new MemTemp();
+
+                            return new MatchingResult(
+                                    1, dst, new AsmOPER(
+                                    String.format("\t\tNEG\t`d0, #%d", -value),
+                                    new Vector<>(),
+                                    new Vector<>(List.of(dst)),
+                                    new Vector<>()
+                            )
+                            );
                         }
                     },
                     // Unary operations
@@ -373,7 +432,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case NOT -> {
                                     cost += 1;
                                     instructions.add(new AsmOPER(
-                                            "\t\tZSZ\t`d0,`s0,1",
+                                            "\t\tZSZ\t`d0, `s0, #1",
                                             new Vector<>(List.of(dst)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
@@ -382,7 +441,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 case NEG -> {
                                     cost += 1;
                                     instructions.add(new AsmOPER(
-                                            "\t\tNEG\t`d0,`s0",
+                                            "\t\tNEG\t`d0, `s0",
                                             new Vector<>(List.of(sub_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
@@ -420,8 +479,8 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
         var best_match = match_any_tile(expr);
         if (!best_match.is_valid()) {
             System.err.printf("Unmatched tile for '%s'%n", expr);
-            //throw new Report.InternalError();
-            return new MemTemp();
+            throw new Report.InternalError();
+            //return new MemTemp();
         }
         instructions.addAll(best_match.instructions);
         return best_match.temp;

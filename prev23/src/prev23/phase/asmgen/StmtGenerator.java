@@ -28,7 +28,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
 
         instructions.add(
             new AsmOPER(
-                String.format("\t\t%s\t`s0,%s", negated_condition ? "BNZ" : "BZ", cjump.posLabel.name),
+                String.format("\t\t%s\t`s0, %s", negated_condition ? "BNZ" : "BZ", cjump.posLabel.name),
                 new Vector<>(List.of(condition)),
                 new Vector<>(),
                 new Vector<>(List.of(cjump.posLabel, cjump.negLabel))
@@ -49,7 +49,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
     public Vector<AsmInstr> visit(ImcJUMP jump, Object arg) {
         return new Vector<>(List.of(
             new AsmOPER(
-                    String.format("\t\tJMP\t %s", jump.label.name),
+                    String.format("\t\tJMP\t%s", jump.label.name),
                     new Vector<>(),
                     new Vector<>(),
                     new Vector<>(List.of(jump.label))
@@ -72,13 +72,13 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
 
         instructions.add(move.dst instanceof ImcMEM mem
                 ? new AsmOPER(
-                        "\t\tSTO\t`s0,`s1,0",
+                        "\t\tSTO\t`s0, `s1, #0",
                         new Vector<>(List.of(src,dst)),
                         new Vector<>(),
                         new Vector<>()
                 )
                 : new AsmMOVE(
-                        "\t\tSET\t`d0,`s0",
+                        "\t\tSET\t`d0, `s0",
                         new Vector<>(List.of(src)),
                         new Vector<>(List.of(dst))
                 )
