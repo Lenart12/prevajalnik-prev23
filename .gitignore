@@ -40,6 +40,9 @@ hs_err_pid*
 **/*.imcgen.xml
 **/*.imclin.html
 **/*.imclin.xml
+**/*.asmgen.html
+**/*.asmgen.xml
+
 
 # antlr
 **/PrevLexer.tokens

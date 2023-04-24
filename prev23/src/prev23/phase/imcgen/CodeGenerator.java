@@ -240,10 +240,10 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
                 if (pfxExpr.expr instanceof AstAtomExpr atom && atom.type == AstAtomExpr.Type.INT) {
                     yield new ImcCONST(Long.parseLong("-" + atom.value));
                 } else {
-                    yield new ImcBINOP(ImcBINOP.Oper.SUB, new ImcCONST(0), accept_expr(pfxExpr.expr));
+                    yield new ImcUNOP(ImcUNOP.Oper.NEG, accept_expr(pfxExpr.expr));
                 }
             }
-            case NOT -> new ImcBINOP(ImcBINOP.Oper.EQU, new ImcCONST(0), accept_expr(pfxExpr.expr));
+            case NOT -> new ImcUNOP(ImcUNOP.Oper.NOT, accept_expr(pfxExpr.expr));
             case PTR -> expect(accept_expr(pfxExpr.expr), ImcMEM.class, pfxExpr).addr;
         });
     }
