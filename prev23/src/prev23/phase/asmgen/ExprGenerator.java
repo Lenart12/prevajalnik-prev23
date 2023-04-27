@@ -267,7 +267,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                             instructions.add(
                                     new AsmOPER(
-                                            String.format("\t\tSL\t`d0, `s0, #%d", shift_count),
+                                            String.format("\t\tSR\t`d0, `s0, #%d", shift_count),
                                             new Vector<>(List.of(lhs_result.temp)),
                                             new Vector<>(List.of(dst)),
                                             new Vector<>()
