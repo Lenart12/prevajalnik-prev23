@@ -5,6 +5,9 @@ import prev23.data.asm.*;
 import prev23.phase.*;
 import prev23.phase.asmgen.*;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 /**
  * Liveness analysis.
  */
@@ -15,7 +18,53 @@ public class LiveAn extends Phase {
 	}
 
 	public void analysis() {
-		// TODO
+		for (var chunk : AsmGen.codes) {
+			var instructions = chunk.instrs;
+
+			var labels = new HashMap<String, AsmInstr>();
+
+			for (var instruction : instructions) {
+				if (instruction instanceof AsmLABEL label) {
+					labels.put(label.toString(), instruction);
+				}
+			}
+
+			var finished = true;
+			do {
+				finished = true;
+
+				for (int i = 0; i < instructions.size(); i++) {
+					var instruction = (AsmOPER) instructions.get(i);
+					var new_in = new HashSet<>(instruction.uses());
+					var old_out = instruction.out();
+					instruction.defs().forEach(old_out::remove);
+					new_in.addAll(old_out);
+
+					var new_out = new HashSet<MemTemp>();
+
+					if (!instruction.jumps().isEmpty() && !instruction.toString().startsWith("\t\tPUSHJ")) {
+						for (var jump : instruction.jumps()) {
+							if (jump == chunk.exitLabel) continue;
+							new_out.addAll(labels.get(jump.name).in());
+						}
+					} else if (i < instructions.size() - 1) {
+						new_out.addAll(instructions.get(i + 1).in());
+					}
+
+					if (!new_in.equals(instruction.in())) {
+						instruction.removeAllFromIn();
+						instruction.addInTemps(new_in);
+						finished = false;
+					}
+
+					if (!new_out.equals(instruction.out())) {
+						instruction.removeAllFromOut();
+						instruction.addOutTemp(new_out);
+						finished = false;
+					}
+				}
+			} while (!finished);
+		}
 	}
 
 	public void log() {
