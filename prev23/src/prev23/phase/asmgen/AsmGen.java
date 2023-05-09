@@ -1,12 +1,13 @@
 package prev23.phase.asmgen;
 
-import java.util.*;
-
+import prev23.Compiler;
 import prev23.data.imc.code.stmt.*;
 import prev23.data.lin.*;
 import prev23.data.asm.*;
 import prev23.phase.*;
 import prev23.phase.imclin.*;
+
+import java.util.*;
 
 /**
  * Machine code generator.
@@ -15,8 +16,11 @@ public class AsmGen extends Phase {
 
 	public static Vector<Code> codes = new Vector<Code>();
 
+	public static int num_regs;
+
 	public AsmGen() {
 		super("asmgen");
+		num_regs = Integer.parseInt(Compiler.cmdLineArgValue("--num-regs"));
 	}
 
 	public void genAsmCodes() {

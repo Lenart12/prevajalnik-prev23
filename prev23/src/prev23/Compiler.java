@@ -4,6 +4,7 @@ import java.util.*;
 
 import prev23.common.report.*;
 import prev23.phase.lexan.*;
+import prev23.phase.regall.RegAll;
 import prev23.phase.synan.*;
 import prev23.phase.abstr.*;
 import prev23.phase.seman.*;
@@ -46,7 +47,7 @@ public class Compiler {
 	// COMMAND LINE ARGUMENTS
 
 	/** All valid phases of the compiler. */
-	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen|imclin|asmgen|livean";
+	private static final String phases = "none|lexan|synan|abstr|seman|memory|imcgen|imclin|asmgen|livean|regall";
 
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
@@ -104,6 +105,7 @@ public class Compiler {
 			if ((cmdLineArgs.get("--target-phase") == null) || (cmdLineArgs.get("--target-phase").equals("all"))) {
 				cmdLineArgs.put("--target-phase", phases.replaceFirst("^.*\\|", ""));
 			}
+			cmdLineArgs.putIfAbsent("--num-regs", "32");
 
 			// Compilation process carried out phase by phase.
 			while (true) {
@@ -194,6 +196,14 @@ public class Compiler {
 					livean.log();
 				}
 				if (Compiler.cmdLineArgValue("--target-phase").equals("livean"))
+					break;
+
+				// Register allocation.
+				try (RegAll regAll = new RegAll()) {
+					regAll.allocate();
+					regAll.log();
+				}
+				if (Compiler.cmdLineArgValue("--target-phase").equals("regall"))
 					break;
 			}
 

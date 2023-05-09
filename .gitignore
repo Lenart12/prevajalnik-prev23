@@ -44,6 +44,8 @@ hs_err_pid*
 **/*.asmgen.xml
 **/*.livean.html
 **/*.livean.xml
+**/*.regall.html
+**/*.regall.xml
 
 # antlr
 **/PrevLexer.tokens
