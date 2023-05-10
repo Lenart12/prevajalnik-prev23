@@ -332,7 +332,7 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
                 new ImcLABEL(start_label),
                 new ImcJUMP(condition_label),
                 new ImcLABEL(condition_label),
-                new ImcCJUMP(accept_expr(whileStmt.cond), body_label, end_label),
+                new ImcCJUMP(new ImcUNOP(ImcUNOP.Oper.NOT, accept_expr(whileStmt.cond)), end_label, body_label),
                 new ImcLABEL(body_label),
                 accept_stmt(whileStmt.bodyStmt, false),
                 new ImcJUMP(condition_label),
