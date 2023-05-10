@@ -16,11 +16,8 @@ public class AsmGen extends Phase {
 
 	public static Vector<Code> codes = new Vector<Code>();
 
-	public static int num_regs;
-
 	public AsmGen() {
 		super("asmgen");
-		num_regs = Integer.parseInt(Compiler.cmdLineArgValue("--num-regs"));
 	}
 
 	public void genAsmCodes() {

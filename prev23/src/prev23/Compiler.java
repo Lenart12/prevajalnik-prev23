@@ -52,6 +52,8 @@ public class Compiler {
 	/** Values of command line arguments indexed by their command line switch. */
 	private static HashMap<String, String> cmdLineArgs = new HashMap<String, String>();
 
+	public static int num_regs;
+
 	/**
 	 * Returns the value of a command line argument.
 	 *
@@ -106,6 +108,11 @@ public class Compiler {
 				cmdLineArgs.put("--target-phase", phases.replaceFirst("^.*\\|", ""));
 			}
 			cmdLineArgs.putIfAbsent("--num-regs", "32");
+			num_regs = Integer.parseInt(Compiler.cmdLineArgValue("--num-regs"));
+			if (num_regs <= 2) {
+				throw new Report.Error("--num-regs must be `3` or more");
+			}
+
 
 			// Compilation process carried out phase by phase.
 			while (true) {
@@ -175,9 +182,9 @@ public class Compiler {
 					Abstr.tree.accept(new ChunkGenerator(), null);
 					imclin.log();
 
-					// Interpreter interpreter = new Interpreter(ImcLin.dataChunks(),
-					// ImcLin.codeChunks());
-					// System.out.println("EXIT CODE: " + interpreter.run("_main"));
+//					 Interpreter interpreter = new Interpreter(ImcLin.dataChunks(),
+//					 ImcLin.codeChunks());
+//					 System.out.println("EXIT CODE: " + interpreter.run("_main"));
 				}
 				if (Compiler.cmdLineArgValue("--target-phase").equals("imclin"))
 					break;

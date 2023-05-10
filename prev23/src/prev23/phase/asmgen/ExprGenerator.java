@@ -2,6 +2,7 @@ package prev23.phase.asmgen;
 
 import java.util.*;
 
+import prev23.Compiler;
 import prev23.common.report.Report;
 import prev23.data.imc.code.ImcInstr;
 import prev23.data.mem.*;
@@ -80,6 +81,72 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                                 src_result.cost + 10, dst, src_result.instructions, new AsmOPER(
                                 "\t\tLDO\t`d0, `s0, #0",
                                 new Vector<>(List.of(src_result.temp)),
+                                new Vector<>(List.of(dst)),
+                                new Vector<>()
+                        )
+                        );
+                    },
+                    // Memory with add
+                    expr -> {
+                        if (!(expr instanceof ImcMEM mem)
+                            || !(mem.addr instanceof ImcBINOP binop)
+                            || binop.oper != ImcBINOP.Oper.ADD
+                        ) return Tile.Invalid();
+
+                        var lhs_result = match_any_tile(binop.fstExpr);
+                        var rhs_result = match_any_tile(binop.sndExpr);
+
+                        if (!lhs_result.is_valid() || !rhs_result.is_valid()) return Tile.Invalid();
+
+                        var instructions = new Vector<AsmInstr>();
+                        instructions.addAll(lhs_result.instructions);
+                        instructions.addAll(rhs_result.instructions);
+
+                        var cost = 10 + lhs_result.cost + rhs_result.cost;
+
+                        var dst = new MemTemp();
+
+                        return new Tile.MatchingResult(
+                                cost, dst, instructions, new AsmOPER(
+                                "\t\tLDO\t`d0, `s0, `s1",
+                                new Vector<>(List.of(lhs_result.temp, rhs_result.temp)),
+                                new Vector<>(List.of(dst)),
+                                new Vector<>()
+                        )
+                        );
+                    },
+                    // Memory with constant
+                    expr -> {
+                        if (!(expr instanceof ImcMEM mem)
+                                || !(mem.addr instanceof ImcBINOP binop)
+                                || binop.oper != ImcBINOP.Oper.ADD
+                        ) return Tile.Invalid();
+
+                        ImcExpr lhs;
+                        long value;
+
+                        if (binop.sndExpr instanceof ImcCONST imc_const &&
+                                imc_const.value < 256 && imc_const.value >= 0) {
+                            lhs = binop.fstExpr;
+                            value = imc_const.value;
+                        } else if (binop.fstExpr instanceof ImcCONST imc_const &&
+                                imc_const.value < 256 && imc_const.value >= 0) {
+                            lhs = binop.sndExpr;
+                            value = imc_const.value;
+                        } else {
+                            return Tile.Invalid();
+                        }
+
+                        var lhs_result = match_any_tile(lhs);
+
+                        if (!lhs_result.is_valid()) return Tile.Invalid();
+
+                        var dst = new MemTemp();
+
+                        return new Tile.MatchingResult(
+                                10 + lhs_result.cost, dst, lhs_result.instructions, new AsmOPER(
+                                String.format("\t\tLDO\t`d0, `s0, #%d", value),
+                                new Vector<>(List.of(lhs_result.temp)),
                                 new Vector<>(List.of(dst)),
                                 new Vector<>()
                         )
@@ -227,6 +294,112 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                         return new Tile.MatchingResult(cost, dst, instructions);
                     },
+                    // Binary operations with constant
+                    expr -> {
+                        if (!(expr instanceof ImcBINOP binop)) return Tile.Invalid();
+
+                        ImcExpr lhs;
+                        long value;
+                        boolean flipped;
+
+                        if (binop.sndExpr instanceof ImcCONST cons
+                            && cons.value >= 0 && cons.value < 256) {
+                            lhs = binop.fstExpr;
+                            value = cons.value;
+                            flipped = false;
+                        } else if (binop.fstExpr instanceof ImcCONST cons
+                            && cons.value >= 0 && cons.value < 256) {
+                            lhs = binop.sndExpr;
+                            value = cons.value;
+                            flipped = true;
+                        } else {
+                            return Tile.Invalid();
+                        }
+
+
+                        var lhs_result = match_any_tile(lhs);
+                        if (!lhs_result.is_valid()) return Tile.Invalid();
+
+                        var instructions = new Vector<>(lhs_result.instructions);
+
+                        var dst = new MemTemp();
+
+                        long cost = lhs_result.cost;
+                        switch (binop.oper) {
+                            case EQU, NEQ, LTH, GTH, LEQ, GEQ -> {
+                                cost += 2;
+                                instructions.add(new AsmOPER(
+                                        String.format("\t\tCMP\t`d0, `s0, #%d", value),
+                                        new Vector<>(List.of(lhs_result.temp)),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                                instructions.add(new AsmOPER(
+                                        String.format("\t\tZS%s\t`d0, `s0, #1", switch (binop.oper) {
+                                            case EQU -> "Z";
+                                            case NEQ -> "NZ";
+                                            case LTH -> flipped ? "P" : "N";
+                                            case GTH -> flipped ? "N" : "P";
+                                            case LEQ -> flipped ? "NN" : "NP";
+                                            case GEQ -> flipped ? "NP" : "NN";
+                                            default ->
+                                                    throw new IllegalStateException("Unexpected value: " + binop.oper);
+                                        }),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                            }
+                            case OR, AND, ADD, SUB -> {
+                                if (flipped && binop.oper == ImcBINOP.Oper.SUB) return Tile.Invalid();
+
+                                cost += 1;
+                                instructions.add(new AsmOPER(
+                                        String.format("\t\t%s\t`d0, `s0, #%d", binop.oper, value),
+                                        new Vector<>(List.of(lhs_result.temp)),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                            }
+                            case MUL -> {
+                                cost += 10;
+                                instructions.add(new AsmOPER(
+                                        String.format("\t\tMUL\t`d0, `s0, #%d", value),
+                                        new Vector<>(List.of(lhs_result.temp)),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                            }
+                            case DIV -> {
+                                if (flipped) return Tile.Invalid();
+                                cost += 60;
+                                instructions.add(new AsmOPER(
+                                        String.format("\t\tDIV\t`d0, `s0, #%d", value),
+                                        new Vector<>(List.of(lhs_result.temp)),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                            }
+                            case MOD -> {
+                                if (flipped) return Tile.Invalid();
+                                cost += 61;
+                                instructions.add(new AsmOPER(
+                                        String.format("\t\tDIV\t`d0, `s0, #%d", value),
+                                        new Vector<>(List.of(lhs_result.temp)),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                                instructions.add(new AsmOPER(
+                                        "\t\tGET\t`d0, rR",
+                                        new Vector<>(),
+                                        new Vector<>(List.of(dst)),
+                                        new Vector<>()
+                                ));
+                            }
+                        }
+
+                        return new Tile.MatchingResult(cost, dst, instructions);
+                    },
                     // Fast twos division
                     expr -> {
                         if (!(expr instanceof ImcBINOP binop)
@@ -298,7 +471,7 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
                         cost += 1;
                         instructions.add(new AsmOPER(
-                                String.format("\t\tPUSHJ\t$%d, %s", AsmGen.num_regs, call.label.name),
+                                String.format("\t\tPUSHJ\t$%d, %s", Compiler.num_regs, call.label.name),
                                 new Vector<>(),
                                 new Vector<>(),
                                 new Vector<>(List.of(call.label))
@@ -366,6 +539,12 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
                         }
 
                         return new Tile.MatchingResult(cost, dst, instructions);
+                    },
+                    // Negated negative constant
+                    expr -> {
+                        if (!(expr instanceof ImcCONST cons) || cons.value >= 0) return Tile.Invalid();
+
+                        return match_any_tile(new ImcUNOP(ImcUNOP.Oper.NEG, new ImcCONST(-cons.value)));
                     },
                     // 8-bit negative constant
                     expr -> {
@@ -488,6 +667,6 @@ public class ExprGenerator implements ImcVisitor<MemTemp, Vector<AsmInstr>> {
 
     @Override
     public MemTemp visit(ImcUNOP unOp, Vector<AsmInstr> instructions) {
-        return new MemTemp();
+        return visit_expr(unOp, instructions);
     }
 }

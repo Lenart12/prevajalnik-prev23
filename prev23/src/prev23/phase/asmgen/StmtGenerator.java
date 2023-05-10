@@ -12,8 +12,79 @@ import prev23.common.report.*;
  * Machine code generator for statements.
  */
 public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
+    private boolean visit_binop_cjump(ImcCJUMP cjump, Vector<AsmInstr> instructions) {
+        if (!(cjump.cond instanceof ImcBINOP binop)) return false;
+
+        switch (binop.oper) {
+            case EQU,NEQ,LTH,GTH,LEQ,GEQ: break;
+            default: return false;
+        }
+
+        ImcExpr lhs = null;
+        long value = -1;
+        boolean flipped = false;
+        var is_const = true;
+        var dst = new MemTemp();
+
+        if (binop.sndExpr instanceof ImcCONST cons
+                && cons.value >= 0 && cons.value < 256) {
+            lhs = binop.fstExpr;
+            value = cons.value;
+        } else if (binop.fstExpr instanceof ImcCONST cons
+                && cons.value >= 0 && cons.value < 256) {
+            lhs = binop.sndExpr;
+            value = cons.value;
+            flipped = true;
+        } else {
+            is_const = false;
+        }
+
+        if (is_const) {
+            var lhs_temp = lhs.accept(new ExprGenerator(), instructions);
+
+            instructions.add(new AsmOPER(
+                    String.format("\t\tCMP\t`d0, `s0, #%d", value),
+                    new Vector<>(List.of(lhs_temp)),
+                    new Vector<>(List.of(dst)),
+                    new Vector<>()
+            ));
+        } else {
+            var lhs_temp = binop.fstExpr.accept(new ExprGenerator(), instructions);
+            var rhs_temp = binop.sndExpr.accept(new ExprGenerator(), instructions);
+
+            instructions.add(new AsmOPER(
+                    "\t\tCMP\t`d0, `s0, `s1",
+                    new Vector<>(List.of(lhs_temp, rhs_temp)),
+                    new Vector<>(List.of(dst)),
+                    new Vector<>()
+            ));
+        }
+
+        instructions.add(new AsmOPER(
+                String.format("\t\tB%s\t`s0, %s", switch (binop.oper) {
+                    case EQU -> "Z";
+                    case NEQ -> "NZ";
+                    case LTH -> flipped ? "P" : "N";
+                    case GTH -> flipped ? "N" : "P";
+                    case LEQ -> flipped ? "NN" : "NP";
+                    case GEQ -> flipped ? "NP" : "NN";
+                    default -> throw new IllegalStateException("Unexpected value: " + binop.oper);
+                }, cjump.posLabel.name),
+                new Vector<>(List.of(dst)),
+                new Vector<>(),
+                new Vector<>(List.of(cjump.posLabel, cjump.negLabel))
+        ));
+
+        return true;
+    }
+
+
     @Override
     public Vector<AsmInstr> visit(ImcCJUMP cjump, Object arg) {
+        var instructions = new Vector<AsmInstr>();
+
+        if (visit_binop_cjump(cjump, instructions)) return instructions;
+
         var negated_condition = false;
         var condition_expr = cjump.cond;
 
@@ -21,8 +92,6 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
             negated_condition = true;
             condition_expr = unop.subExpr;
         }
-
-        var instructions = new Vector<AsmInstr>();
 
         var condition = condition_expr.accept(new ExprGenerator(), instructions);
 
@@ -62,27 +131,77 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
         return new Vector<>(List.of(new AsmLABEL(label.label)));
     }
 
+
+    private boolean visit_store_const(ImcBINOP binop, ImcExpr src, Vector<AsmInstr> instructions) {
+        ImcExpr lhs;
+        long value;
+
+        if (binop.sndExpr instanceof ImcCONST imc_const &&
+                imc_const.value < 256 && imc_const.value >= 0) {
+            lhs = binop.fstExpr;
+            value = imc_const.value;
+        } else if (binop.fstExpr instanceof ImcCONST imc_const &&
+                imc_const.value < 256 && imc_const.value >= 0) {
+            lhs = binop.sndExpr;
+            value = imc_const.value;
+        } else {
+            return false;
+        }
+
+        var lhs_temp = lhs.accept(new ExprGenerator(), instructions);
+        var src_temp = src.accept(new ExprGenerator(), instructions);
+
+        instructions.add(new AsmOPER(
+                String.format("\t\tSTO\t`s0, `s1, #%d", value),
+                new Vector<>(List.of(src_temp, lhs_temp)),
+                new Vector<>(),
+                new Vector<>()
+        ));
+        return true;
+    }
+
     @Override
     public Vector<AsmInstr> visit(ImcMOVE move, Object arg) {
         var instructions = new Vector<AsmInstr>();
 
-        var dst = (move.dst instanceof ImcMEM mem ? mem.addr : move.dst)
-                .accept(new ExprGenerator(), instructions);
-        var src = move.src.accept(new ExprGenerator(), instructions);
+        if (move.dst instanceof ImcMEM mem) {
+            if (mem.addr instanceof ImcBINOP binop && binop.oper == ImcBINOP.Oper.ADD) {
+                if (visit_store_const(binop, move.src, instructions)) return instructions;
 
-        instructions.add(move.dst instanceof ImcMEM mem
-                ? new AsmOPER(
+                var lhs_result = binop.fstExpr.accept(new ExprGenerator(), instructions);
+                var rhs_result = binop.sndExpr.accept(new ExprGenerator(), instructions);
+
+                var src_temp = move.src.accept(new ExprGenerator(), instructions);
+
+                instructions.add(new AsmOPER(
+                        "\t\tSTO\t`s0, `s1, `s2",
+                        new Vector<>(List.of(src_temp, lhs_result, rhs_result)),
+                        new Vector<>(),
+                        new Vector<>()
+                ));
+            } else {
+                var dst = mem.addr.accept(new ExprGenerator(), instructions);
+                var src = move.src.accept(new ExprGenerator(), instructions);
+                instructions.add(
+                        new AsmOPER(
                         "\t\tSTO\t`s0, `s1, #0",
                         new Vector<>(List.of(src,dst)),
                         new Vector<>(),
                         new Vector<>()
-                )
-                : new AsmMOVE(
-                        "\t\tSET\t`d0, `s0",
-                        new Vector<>(List.of(src)),
-                        new Vector<>(List.of(dst))
-                )
-        );
+                ));
+            }
+
+        } else {
+            var dst = move.dst.accept(new ExprGenerator(), instructions);
+            var src = move.src.accept(new ExprGenerator(), instructions);
+
+            instructions.add(
+                    new AsmMOVE(
+                    "\t\tSET\t`d0, `s0",
+                    new Vector<>(List.of(src)),
+                    new Vector<>(List.of(dst))
+            ));
+        }
 
         return instructions;
     }
