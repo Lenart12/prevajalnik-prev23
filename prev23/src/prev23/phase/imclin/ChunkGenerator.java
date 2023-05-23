@@ -7,7 +7,6 @@ import prev23.data.ast.tree.decl.*;
 import prev23.data.ast.tree.expr.*;
 import prev23.data.ast.visitor.*;
 import prev23.data.mem.*;
-import prev23.data.imc.code.expr.*;
 import prev23.data.imc.code.stmt.*;
 import prev23.data.lin.*;
 import prev23.phase.imcgen.*;
@@ -56,6 +55,8 @@ public class ChunkGenerator extends AstFullVisitor<Object, Object> {
        }
        return null;
     }
+
+    public static final HashSet<String> nonremovable_negative_labels = new HashSet<>();
 
     private Vector<ImcStmt> fix_basic_blocks(Vector<ImcStmt> stmts, MemLabel entry_label, MemLabel exit_label) {
         HashMap<MemLabel, Vector<ImcStmt>> basic_blocks = new HashMap<>();
@@ -115,29 +116,68 @@ public class ChunkGenerator extends AstFullVisitor<Object, Object> {
             }
         }
 
-        var targeted_labels = new HashSet<MemLabel>();
-        targeted_labels.add(entry_label);
-        // Remove sequential JUMP L -> LABEL L
-        for (int i = 0; i < fixed.size(); i++) {
-            if (fixed.get(i) instanceof ImcCJUMP cjump) {
-                targeted_labels.add(cjump.posLabel);
-                targeted_labels.add(cjump.negLabel);
-            } else if (fixed.get(i) instanceof ImcJUMP jump) {
-                if (i + 1 < fixed.size() && fixed.get(i + 1) instanceof ImcLABEL label && jump.label == label.label) {
-                    fixed.remove(i--);
+        boolean continue_reducing = true;
+        while (continue_reducing) {
+            continue_reducing = false;
+
+            // Remove duplicate labels
+            var duplicate_mapping = new HashMap<MemLabel, MemLabel>();
+            MemLabel current_set = null;
+            for (var instr : fixed) {
+                if (!(instr instanceof ImcLABEL label)) {
+                    current_set = null;
+                    continue;
+                }
+
+                if (current_set == null) {
+                    current_set = label.label;
                 } else {
-                    targeted_labels.add(jump.label);
+                    duplicate_mapping.put(label.label, current_set);
                 }
             }
-        }
 
-        var removed = 0;
-        // Remove unused labels
-        for (int i = 0; i < fixed.size(); i++) {
-            if (fixed.get(i) instanceof ImcLABEL label) {
-                if (!targeted_labels.contains(label.label)) {
-                    fixed.remove(i--);
-                    removed++;
+            if (!duplicate_mapping.isEmpty()) {
+                var it = fixed.iterator();
+                while (it.hasNext()) {
+                    var instr = it.next();
+                    if (instr instanceof ImcLABEL label && duplicate_mapping.containsKey(label.label)) {
+                        it.remove();
+                        continue_reducing = true;
+                    } else if (instr instanceof ImcCJUMP cjump) {
+                        cjump.posLabel = duplicate_mapping.getOrDefault(cjump.posLabel, cjump.posLabel);
+                        cjump.negLabel = duplicate_mapping.getOrDefault(cjump.negLabel, cjump.negLabel);
+                    } else if (instr instanceof ImcJUMP jump) {
+                        jump.label = duplicate_mapping.getOrDefault(jump.label, jump.label);
+                    }
+                }
+            }
+
+            // Remove sequential JUMP L -> LABEL L
+            var targeted_labels = new HashSet<MemLabel>();
+            targeted_labels.add(entry_label);
+            for (int i = 0; i < fixed.size(); i++) {
+                if (fixed.get(i) instanceof ImcCJUMP cjump) {
+                    nonremovable_negative_labels.add(cjump.posLabel.name);
+                    targeted_labels.add(cjump.posLabel);
+                    targeted_labels.add(cjump.negLabel);
+                } else if (fixed.get(i) instanceof ImcJUMP jump) {
+                    if (i + 1 < fixed.size() && fixed.get(i + 1) instanceof ImcLABEL label && jump.label == label.label) {
+                        fixed.remove(i--);
+                        continue_reducing = true;
+                    } else {
+                        targeted_labels.add(jump.label);
+                        nonremovable_negative_labels.add(jump.label.name);
+                    }
+                }
+            }
+
+            // Remove unused labels
+            for (int i = 0; i < fixed.size(); i++) {
+                if (fixed.get(i) instanceof ImcLABEL label) {
+                    if (!targeted_labels.contains(label.label)) {
+                        continue_reducing = true;
+                        fixed.remove(i--);
+                    }
                 }
             }
         }
