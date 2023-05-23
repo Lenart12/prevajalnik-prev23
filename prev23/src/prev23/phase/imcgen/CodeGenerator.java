@@ -86,7 +86,6 @@ public class CodeGenerator extends AstFullVisitor<ImcInstr, Boolean> {
     private ImcInstr declare_stmt(AstStmt ast, ImcStmt s, boolean is_return) {
         var ret_s = s;
         if (is_return) {
-            ImcExpr rv = new ImcCONST(0);
             if (s instanceof ImcESTMT expr) {
                 ret_s = new ImcMOVE(new ImcTEMP(frame_stack.peek().RV), expr.expr);
             } else {
