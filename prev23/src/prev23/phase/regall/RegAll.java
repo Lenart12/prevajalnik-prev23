@@ -18,7 +18,7 @@ import prev23.phase.livean.LiveAn;
 public class RegAll extends Phase {
 
 	/** Mapping of temporary variables to registers. */
-	public final HashMap<MemTemp, Integer> tempToReg = new HashMap<MemTemp, Integer>();
+	public static final HashMap<MemTemp, Integer> tempToReg = new HashMap<MemTemp, Integer>();
 
 	public RegAll() {
 		super("regall");
@@ -38,6 +38,9 @@ public class RegAll extends Phase {
 				for (var instruction : code.instrs) {
 					graph.set_all_pairs(instruction.in(), fp);
 					graph.set_all_pairs(instruction.out(), fp);
+					// Defs are required so that temps that are only defined and never used
+					// also get allocated a register
+					graph.set_all_pairs(new HashSet<>(instruction.defs()), fp);
 				}
 
 				if (!graph.try_allocate()) {
