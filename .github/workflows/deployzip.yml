@@ -15,7 +15,7 @@ jobs:
           VERSION="${{ github.ref_name }}"
           SUBMISSION_ID=$(echo ${{ vars.SUBMISSION }} | sed 's/-.*$//')
           RELEASE_NAME=$(echo ${{ vars.SUBMISSION }} | sed 's/^.*-//')
-          ZIP_NAME=${{ secrets.STUDENTID }}-$RELEASE_NAME.zip
+          [[ -z $RELEASE_NAME ]] && ZIP_NAME=${{ secrets.STUDENTID }}.zip || ZIP_NAME=${{ secrets.STUDENTID }}-$RELEASE_NAME.zip
           JAR_NAME=prev23-${{ github.ref_name }}.jar
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "SUBMISSION_ID=$SUBMISSION_ID" >> $GITHUB_ENV
