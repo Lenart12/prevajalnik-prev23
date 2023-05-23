@@ -4,6 +4,7 @@ import java.util.*;
 import prev23.data.imc.code.expr.*;
 import prev23.data.imc.code.stmt.*;
 import prev23.data.imc.visitor.*;
+import prev23.data.lin.LinCodeChunk;
 import prev23.data.mem.*;
 import prev23.data.asm.*;
 import prev23.common.report.*;
@@ -11,7 +12,7 @@ import prev23.common.report.*;
 /**
  * Machine code generator for statements.
  */
-public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
+public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, LinCodeChunk> {
     private boolean visit_binop_cjump(ImcCJUMP cjump, Vector<AsmInstr> instructions) {
         if (!(cjump.cond instanceof ImcBINOP binop)) return false;
 
@@ -43,7 +44,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
             var lhs_temp = lhs.accept(new ExprGenerator(), instructions);
 
             instructions.add(new AsmOPER(
-                    String.format("\t\tCMP\t`d0, `s0, #%d", value),
+                    String.format("\t\tCMP\t`d0,`s0,#%x", value),
                     new Vector<>(List.of(lhs_temp)),
                     new Vector<>(List.of(dst)),
                     new Vector<>()
@@ -53,7 +54,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
             var rhs_temp = binop.sndExpr.accept(new ExprGenerator(), instructions);
 
             instructions.add(new AsmOPER(
-                    "\t\tCMP\t`d0, `s0, `s1",
+                    "\t\tCMP\t`d0,`s0,`s1",
                     new Vector<>(List.of(lhs_temp, rhs_temp)),
                     new Vector<>(List.of(dst)),
                     new Vector<>()
@@ -61,7 +62,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
         }
 
         instructions.add(new AsmOPER(
-                String.format("\t\tB%s\t`s0, %s", switch (binop.oper) {
+                String.format("\t\tB%s\t`s0,%s", switch (binop.oper) {
                     case EQU -> "Z";
                     case NEQ -> "NZ";
                     case LTH -> flipped ? "P" : "N";
@@ -80,7 +81,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
 
 
     @Override
-    public Vector<AsmInstr> visit(ImcCJUMP cjump, Object arg) {
+    public Vector<AsmInstr> visit(ImcCJUMP cjump, LinCodeChunk chunk) {
         var instructions = new Vector<AsmInstr>();
 
         if (visit_binop_cjump(cjump, instructions)) return instructions;
@@ -91,13 +92,33 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
         if (condition_expr instanceof ImcUNOP unop && unop.oper == ImcUNOP.Oper.NOT) {
             negated_condition = true;
             condition_expr = unop.subExpr;
+
+            if (condition_expr instanceof ImcBINOP binop
+                    && binop.oper != ImcBINOP.Oper.OR
+                    && binop.oper != ImcBINOP.Oper.AND) {
+                var inv_condition = new ImcBINOP(
+                        switch (binop.oper) {
+                            case EQU -> ImcBINOP.Oper.NEQ;
+                            case NEQ -> ImcBINOP.Oper.EQU;
+                            case LTH -> ImcBINOP.Oper.GEQ;
+                            case GTH -> ImcBINOP.Oper.LEQ;
+                            case LEQ -> ImcBINOP.Oper.GTH;
+                            case GEQ -> ImcBINOP.Oper.LTH;
+                            default -> throw new Report.InternalError();
+                        },
+                        binop.fstExpr, binop.sndExpr
+                ) ;
+                var inv_cjump = new ImcCJUMP(inv_condition, cjump.posLabel, cjump.negLabel);
+                visit_binop_cjump(inv_cjump, instructions);
+                return instructions;
+            }
         }
 
         var condition = condition_expr.accept(new ExprGenerator(), instructions);
 
         instructions.add(
             new AsmOPER(
-                String.format("\t\t%s\t`s0, %s", negated_condition ? "BNZ" : "BZ", cjump.posLabel.name),
+                String.format("\t\t%s\t`s0,%s", negated_condition ? "BZ" : "BNZ", cjump.posLabel.name),
                 new Vector<>(List.of(condition)),
                 new Vector<>(),
                 new Vector<>(List.of(cjump.posLabel, cjump.negLabel))
@@ -108,18 +129,29 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
     }
 
     @Override
-    public Vector<AsmInstr> visit(ImcESTMT eStmt, Object arg) {
+    public Vector<AsmInstr> visit(ImcESTMT eStmt, LinCodeChunk chunk) {
         var instructions = new Vector<AsmInstr>();
         eStmt.expr.accept(new ExprGenerator(), instructions);
         return instructions;
     }
 
     @Override
-    public Vector<AsmInstr> visit(ImcJUMP jump, Object arg) {
+    public Vector<AsmInstr> visit(ImcJUMP jump, LinCodeChunk chunk) {
+        // Jump to exit must include RV so that it is not
+        // spilled in regall
+        Vector<MemTemp> uses = new Vector<>();
+        if (chunk != null) {
+            if (jump.label == chunk.exitLabel) {
+                uses.add(chunk.frame.RV);
+            }
+        } else {
+            Report.warning("StmtGenerator generating for ImcJUMP without chunk info");
+        }
+
         return new Vector<>(List.of(
             new AsmOPER(
                     String.format("\t\tJMP\t%s", jump.label.name),
-                    new Vector<>(),
+                    uses,
                     new Vector<>(),
                     new Vector<>(List.of(jump.label))
             )
@@ -127,7 +159,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
     }
 
     @Override
-    public Vector<AsmInstr> visit(ImcLABEL label, Object arg) {
+    public Vector<AsmInstr> visit(ImcLABEL label, LinCodeChunk chunk) {
         return new Vector<>(List.of(new AsmLABEL(label.label)));
     }
 
@@ -152,7 +184,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
         var src_temp = src.accept(new ExprGenerator(), instructions);
 
         instructions.add(new AsmOPER(
-                String.format("\t\tSTO\t`s0, `s1, #%d", value),
+                String.format("\t\tSTO\t`s0,`s1,#%x", value),
                 new Vector<>(List.of(src_temp, lhs_temp)),
                 new Vector<>(),
                 new Vector<>()
@@ -161,7 +193,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
     }
 
     @Override
-    public Vector<AsmInstr> visit(ImcMOVE move, Object arg) {
+    public Vector<AsmInstr> visit(ImcMOVE move, LinCodeChunk chunk) {
         var instructions = new Vector<AsmInstr>();
 
         if (move.dst instanceof ImcMEM mem) {
@@ -174,7 +206,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
                 var src_temp = move.src.accept(new ExprGenerator(), instructions);
 
                 instructions.add(new AsmOPER(
-                        "\t\tSTO\t`s0, `s1, `s2",
+                        "\t\tSTO\t`s0,`s1,`s2",
                         new Vector<>(List.of(src_temp, lhs_result, rhs_result)),
                         new Vector<>(),
                         new Vector<>()
@@ -184,7 +216,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
                 var src = move.src.accept(new ExprGenerator(), instructions);
                 instructions.add(
                         new AsmOPER(
-                        "\t\tSTO\t`s0, `s1, #0",
+                        "\t\tSTO\t`s0,`s1,#0",
                         new Vector<>(List.of(src,dst)),
                         new Vector<>(),
                         new Vector<>()
@@ -197,7 +229,7 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
 
             instructions.add(
                     new AsmMOVE(
-                    "\t\tSET\t`d0, `s0",
+                    "\t\tSET\t`d0,`s0",
                     new Vector<>(List.of(src)),
                     new Vector<>(List.of(dst))
             ));
@@ -207,11 +239,11 @@ public class StmtGenerator implements ImcVisitor<Vector<AsmInstr>, Object> {
     }
 
     @Override
-    public Vector<AsmInstr> visit(ImcSTMTS stmts, Object arg) {
+    public Vector<AsmInstr> visit(ImcSTMTS stmts, LinCodeChunk chunk) {
         var instructions = new Vector<AsmInstr>();
 
         for (var stmt : stmts.stmts) {
-            instructions.addAll(stmt.accept(this, arg));
+            instructions.addAll(stmt.accept(this, chunk));
         }
 
         return instructions;
