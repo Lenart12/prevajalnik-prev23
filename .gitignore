@@ -47,6 +47,10 @@ hs_err_pid*
 **/*.regall.html
 **/*.regall.xml
 
+# mmix
+*.mms
+*.mmo
+
 # antlr
 **/PrevLexer.tokens
 **/PrevLexer.java
