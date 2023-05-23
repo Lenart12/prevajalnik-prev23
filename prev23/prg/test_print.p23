@@ -1,0 +1,12 @@
+fun putChar(c : int) : void;
+
+fun main(): int = let
+    var i:int;
+in {
+    i = 0;
+    while i < 10 do {
+        putChar(i + ('0': int));
+        i = i + 1
+    };
+    i
+};

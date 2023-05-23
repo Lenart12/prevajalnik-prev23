@@ -1,0 +1,24 @@
+fun putChar(c : char) : void;
+fun getChar(): char;
+
+fun putInt(c: int): void = {
+    while c != 0 do {
+        putChar((c%10 + ('0': int) : char));
+        c = c / 10
+    };
+    putChar((10: char))
+};
+
+fun main(): int = let
+    var n_printed:int, c:char, loop:bool;
+in {
+    n_printed = 0;
+    loop = true;
+    while loop do {
+        c = getChar();
+        putInt((c: int));
+        if (c: int) == 0 then loop = false;
+        n_printed = n_printed + 1
+    };
+    n_printed
+};

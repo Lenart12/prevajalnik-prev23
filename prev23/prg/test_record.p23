@@ -1,0 +1,110 @@
+fun assert(b: bool): void;
+
+typ rec3_t = {
+    r: {
+        e: int
+    },
+    f: int
+};
+
+var rec1: {
+    a: int,
+    b: int
+}, rec2: {
+    c: int,
+    d: int
+}, rec3: {
+    r: rec3_t,
+    g: int
+}, i: int;
+
+fun main(): int = {
+    rec1.a = 0;
+    rec1.b = 0;
+    rec2.c = 0;
+    rec2.d = 0;
+    rec3.r.r.e = 0;
+    rec3.r.f = 0;
+    rec3.g = 0;
+    i = 0;
+
+    rec1.a = -1;
+    rec1.b = -2;
+    assert(rec1.a == -1);
+    assert(rec1.b == -2);
+    assert(rec2.c == 0);
+    assert(rec2.d == 0);
+
+    rec1.a = 0;
+    rec1.b = 0;
+    rec2.c = -1;
+    rec2.d = -2;
+    assert(rec1.a == 0);
+    assert(rec1.b == 0);
+    assert(rec2.c == -1);
+    assert(rec2.d == -2);
+
+    rec2.d = -1;
+
+    assert(rec2.d == -1);
+    assert(rec3.r.r.e == 0);
+    assert(rec3.r.f == 0);
+    assert(rec3.g == 0);
+    assert(i == 0);
+
+    rec2.d = 0;
+    rec3.r.r.e = -1;
+
+    assert(rec2.d == 0);
+    assert(rec3.r.r.e == -1);
+    assert(rec3.r.f == 0);
+    assert(rec3.g == 0);
+    assert(i == 0);
+
+    rec3.r.r.e = 0;
+    rec3.r.f = -1;
+
+    assert(rec2.d == 0);
+    assert(rec3.r.r.e == 0);
+    assert(rec3.r.f == -1);
+    assert(rec3.g == 0);
+    assert(i == 0);
+
+    rec3.r.f = 0;
+    rec3.g = -1;
+
+    assert(rec2.d == 0);
+    assert(rec3.r.r.e == 0);
+    assert(rec3.r.f == 0);
+    assert(rec3.g == -1);
+    assert(i == 0);
+
+    rec3.g = 0;
+    i = -1;
+
+    assert(rec2.d == 0);
+    assert(rec3.r.r.e == 0);
+    assert(rec3.r.f == 0);
+    assert(rec3.g == 0);
+    assert(i == -1);
+
+    rec1.a = 1;
+    rec1.b = -2;
+    rec2.c = 3;
+    rec2.d = -4;
+    rec3.r.r.e = 5;
+    rec3.r.f = -6;
+    rec3.g = 7;
+    i = -8;
+
+    assert(rec1.a == 1);
+    assert(rec1.b == -2);
+    assert(rec2.c == 3);
+    assert(rec2.d == -4);
+    assert(rec3.r.r.e == 5 );
+    assert(rec3.r.f == -6);
+    assert(rec3.g == 7);
+    assert(i == -8);
+
+    0
+};

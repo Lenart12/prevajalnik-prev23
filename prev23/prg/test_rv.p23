@@ -1,0 +1,21 @@
+fun putChar(c : int) : void;
+
+fun ret1(): int = 1,
+    ret2(): int = 2,
+    retX(x: int): int =
+        let
+            var v1: int;
+        in {
+            v1 = x;
+            v1
+        };
+
+fun main(): int =
+    let
+        var v1: int;
+    in {
+        v1 = ret1() + ret2() + retX(3);
+        v1 = v1 + ('0': int);
+        putChar(v1);
+        5
+    };

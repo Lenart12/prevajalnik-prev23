@@ -1,0 +1,212 @@
+fun putChar(c : int) : void;
+
+# AssertFail\tBYTE\t"Assertion failed!",10,0
+# _assert\t\tLDO\tTrapReg,StackPtr,#8
+# \t\tBZ\tTrapReg,Lassert
+# \t\tPOP\t0,0
+# Lassert\t\tLDA\tTrapReg,AssertFail
+# \t\tTRAP\t0,Fputs,StdOut
+# \t\tTRAP\t0,Halt,0
+fun assert(b: bool): void;
+
+# Ali pa to
+# fun exit(): void, assert(b: bool): void = if !b then exit();
+
+fun main(): int =
+    let
+        var v1: int, v2: int, correct: bool, b:bool;
+    in {
+        assert(true);
+        assert((2: bool)); # Must not fail
+        # Test assert(false) first
+        # assert(false);
+        # assert((0: bool));
+
+        v1 = -3;
+        v2 = 3;
+
+        correct = false;
+        if true then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        if false then assert(false)
+        else correct = true;
+        assert(correct);
+
+        # EQ -----------------------------------------------------------
+        correct = false;
+        if v1 == v2 then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        b = v1 == v2;
+        if b then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        if !(v1 == v2) then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        b = !(v1 == v2);
+        if b then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        if v2 == 3 then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        if 3 == v1 then assert(false)
+        else correct = true;
+        assert(correct);
+
+        assert(1 == 1);
+        assert(0 == 0);
+        assert(!(1 == 0));
+
+        # NEQ -----------------------------------------------------------
+        correct = false;
+        if v1 != v2 then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        b = v1 != v2;
+        if b then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        if !(v1 != v2) then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        b = !(v1 != v2);
+        if b then assert(false)
+        else correct = true;
+        assert(correct);
+
+        assert(1 != 0);
+        assert(0 != 1);
+        assert(!(0 != 0));
+        assert(!(1 != 1));
+
+        # GTH -----------------------------------------------------------
+        correct = false;
+        if v1 > v2 then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        b = v1 > v2;
+        if b then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        if !(v1 > v2) then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        b = !(v1 > v2);
+        if b then correct = true
+        else assert(false);
+        assert(correct);
+
+        assert(2 > 1);
+        assert(!(1 > 2));
+        assert(!(1 > 1));
+        
+        # LTH -----------------------------------------------------------
+        correct = false;
+        if v1 < v2 then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        b = v1 < v2;
+        if b then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        if !(v1 < v2) then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        b = !(v1 < v2);
+        if b then assert(false)
+        else correct = true;
+        assert(correct);
+
+        assert(1 < 2);
+        assert(!(2 < 1));
+        assert(!(1 < 1));
+
+        # GEQ -----------------------------------------------------------
+        correct = false;
+        if v1 >= v2 then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        b = v1 >= v2;
+        if b then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        if !(v1 >= v2) then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        b = !(v1 >= v2);
+        if b then correct = true
+        else assert(false);
+        assert(correct);
+
+        assert(2 >= 1);
+        assert(1 >= 1);
+        assert(!(1 >= 2));
+
+        # LEQ -----------------------------------------------------------
+        correct = false;
+        if v1 <= v2 then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        b = v1 <= v2;
+        if b then correct = true
+        else assert(false);
+        assert(correct);
+
+        correct = false;
+        if !(v1 <= v2) then assert(false)
+        else correct = true;
+        assert(correct);
+
+        correct = false;
+        b = !(v1 <= v2);
+        if b then assert(false)
+        else correct = true;
+        assert(correct);
+
+        assert(1 <= 2);
+        assert(1 <= 1);
+        assert(!(2 <= 1));
+
+        0
+    };

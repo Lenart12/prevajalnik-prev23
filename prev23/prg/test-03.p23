@@ -51,7 +51,8 @@ fun main():int=
           var sum:int;
           var i:int;
       in
-      {  
+      {
+         seed = 2023;
          i=0;while i<100 do {numbers[i]=random()%99;i=i+1};
          i=0;while i<100 do {putInt(numbers[i]);putChar(' ');i=i+1};
          sum=0;i=0;while i<100 do {sum=sum+numbers[i];i=i+1};putInt(sum);endLine();

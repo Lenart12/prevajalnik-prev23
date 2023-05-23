@@ -1,0 +1,52 @@
+fun putChar(c : int) : void;
+
+fun putInt(x : int) : void = {
+    if x < 0
+    then {
+        x = -x;
+        putChar(('-' : int))
+    }
+    else none;
+
+    if x/10 > 0
+    then putInt(x/10)
+    else none;
+    putChar(x%10 + ('0': int))
+};
+
+fun bubblesort():int =
+    let var size:int;
+        var arr:[5]int;
+        var i: int, j :int, temp:int;
+    in {
+        size = 5;
+        #initialize arr
+        arr[0] = 14; arr[1] = 33; arr[2] = 27; arr[3] = 35; arr[4] = 10;
+        i = 0; j = 0;
+
+        while i < size do {
+            while j < size-1 do {
+                if arr[j] > arr[j+1] then {
+                    #swap elements
+                    temp = arr[j];
+                    arr[j] = arr[j+1];
+                    arr[j+1] = temp
+                };
+                j = j+1
+            };
+            j = 0;
+            i = i+1
+        };
+	    i = 0;
+        while i < size do {
+            putInt(arr[i]);
+            putChar(10);
+            i = i + 1
+        };
+        arr[0]
+    };
+
+
+fun main():void = {
+    putChar(bubblesort()) #[10][14][27][33][35]
+};

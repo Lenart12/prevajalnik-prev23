@@ -1,0 +1,65 @@
+
+fun assert(b: bool): void;
+
+typ Foo = {
+    a: int,
+    b: int
+}, pFoo = ^Foo;
+
+var foo_idx: int;
+
+fun allocFoo(): pFoo = new(Foo);
+
+fun getFoo(): pFoo = 
+    let
+        var f: pFoo;
+    in {
+        f = allocFoo();
+        f^.a = foo_idx;
+        f^.b = foo_idx + 1;
+        foo_idx = foo_idx + 2;
+        f
+    };
+
+fun testNew(): pFoo = let var
+        f1: pFoo,
+        f2: pFoo;
+    in {
+        f1 = (nil: pFoo);
+        f2 = (nil: pFoo);
+        foo_idx = 1;
+
+        f1 = getFoo();
+        assert(f1 != (nil: pFoo));
+        assert(f1^.a == 1);
+        assert(f1^.b == 2);
+
+        f2 = getFoo();
+        assert(f2 != (nil: pFoo));
+        assert(f1^.a == 1);
+        assert(f1^.b == 2);
+        assert(f2^.a == 3);
+        assert(f2^.b == 4);
+
+        assert(f1 != f2);
+
+        del(f2);
+
+        f1
+    };
+
+fun main(): int = let var
+        f: pFoo;
+    in {
+        del(allocFoo());
+        f = testNew();
+
+        assert(f != (nil: pFoo));
+        assert(f^.a == 1);
+        assert(f^.b == 2);
+
+        del(f);
+        f = (nil: pFoo);
+
+        0
+    };

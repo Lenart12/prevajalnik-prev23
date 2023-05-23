@@ -1,0 +1,1249 @@
+# Tetris
+# By: mv7846
+
+
+# ========================================================================== #
+
+
+fun putChar(c: char): void;
+fun getChar(): char;
+
+
+# ================================[ OUTPUT ]================================ #
+
+
+fun nl(): void = {
+	putChar((10:char))
+};
+
+
+fun print(s: ^char): void = {
+	if (s != (nil:^char)) then {
+		while ((s^:int) != 0) do {
+			putChar(s^);
+			s = ((s:int) + 8 : ^char)
+		}
+	}
+};
+
+
+fun println(s: ^char): void = {
+	print(s);
+	nl()
+};
+
+
+fun printNum(n: int): void = {
+	let var i: int, buff: [32]char; in {
+		i = 0;
+		
+		if (n < 0) then {
+			n = -n;
+			putChar('-')
+		};
+		
+		buff[i] = (('0':int) + (n % 10) : char);
+		n = n / 10;
+		
+		while (n != 0) do {
+			i = i + 1;
+			buff[i] = (('0':int) + (n % 10) : char);
+			n = n / 10
+		};
+		
+		while (i >= 0) do {
+			putChar(buff[i]);
+			i = i - 1
+		};
+		
+		none
+	}
+};
+
+
+fun printf(format: ^char, args: ^^void): void = {
+	let var i: int; in
+	if (format != (nil:^char)) then {
+		i = 0;
+		
+		while (format^ != (0:char)) do {
+			
+			# Argument
+			if (format^ == '%') then {
+				format = ((format:int)+8 : ^char);
+				
+				if (format^ == '%') then {
+					putChar('%')
+				} else if (format^ == 'd') then {
+					printNum(((args:int) + i : ^^int)^^);
+					i = i + 8
+				} else if (format^ == 's') then {
+					print(((args:int) + i : ^^char)^);
+					i = i + 8
+				} else {
+					format = ((format:int)-8 : ^char);
+					putChar(format^)
+				}
+				
+			}
+			
+			# Escaped character
+			else if (format^ == '\\') then {
+				format = ((format:int)+8 : ^char);
+				if (format^ == 'n') then
+					putChar((10:char))
+				else if (format^ == 't') then
+					putChar((9:char))
+				else if (format^ == 'r') then
+					putChar((13:char))
+				else if (format^ == '0') then
+					putChar((0:char))
+				else
+					putChar(format^)
+			}
+			
+			# Regular character
+			else {
+				putChar(format^)
+			};
+			
+			format = ((format:int)+8 : ^char)
+		}
+		
+	}
+};
+
+
+# ================================[ INPUT ]================================= #
+
+
+fun readNum(): int = {
+	let var loop: bool, read: bool, c: char, n: int, neg: int; in {
+		loop = true;
+		read = true;
+		neg = 0;
+		n = 0;
+		
+		while (loop) do {
+			c = getChar();
+			
+			if (c == (10:char) | c == (0:char)) then {
+				loop = false
+			} else if (c == '-') then {
+				if (neg != 0) then
+					read = false
+				else
+					neg = -1
+			} else if (read & ('0':int) <= (c:int) & (c:int) <= ('9':int)) then {
+				n = (n * 10) + ((c:int) - ('0':int))
+			} else {
+				read = false
+			};
+			
+			if (neg == 0) then {
+				if (('0':int) <= (c:int) & (c:int) <= ('9':int)) then
+					neg = 1
+				else
+					read = false
+			}
+			
+		};
+		
+		n * neg
+	}
+};
+
+
+fun readLine(buff: ^char, n: int): int = {
+	let var i: int; in {
+		i = 0;
+		n = n - 1;
+		
+		while (n > 0) do {
+			buff^ = getChar();
+			
+			if (buff^ == (10:char) | buff^ == (0:char)) then {
+				n = -1
+			} else {
+				n = n - 1;
+				i = i + 1;
+				buff = ((buff:int) + 8 : ^char)
+			}
+			
+		};
+		
+		buff^ = (0:char);
+		i
+	}
+};
+
+
+# ========================================================================== #
+
+
+typ UTF8 = int;
+typ ANSICode = ^char;
+
+
+var ANSI: {
+	RESET:  ANSICode,
+	BLACK:  ANSICode,
+	RED:    ANSICode,
+	GREEN:  ANSICode,
+	YELLOW: ANSICode,
+	BLUE:   ANSICode,
+	PURPLE: ANSICode,
+	CYAN:   ANSICode,
+	WHITE:  ANSICode,
+	UP:	    ANSICode,
+	RIGHT:  ANSICode,
+	DOWN:   ANSICode,
+	LEFT:   ANSICode,
+	COL:    ANSICode,
+	SAVE:   ANSICode,
+	LOAD:   ANSICode,
+	CLEAR_LINE: ANSICode,
+	CLEAR_SCREEN_FORWARD: ANSICode
+};
+
+
+var UNICODE: {
+	FULL_BLOCK: UTF8,				# █  0xE2 0x96 0x88
+	DASH: UTF8,						# -
+	BOX: {
+		CORNER_TOP_LEFT: UTF8,		# ┏  0xE2 0x94 0x8F
+		CORNER_TOP_RIGHT: UTF8,		# ┓  0xE2 0x94 0x93
+		CORNER_BOTTOM_LEFT: UTF8,	# ┗  0xE2 0x94 0x97
+		CORNER_BOTTOM_RIGHT: UTF8,	# ┛  0xE2 0x94 0x9B
+		VERTICAL: UTF8,				# ┃  0xE2 0x94 0x83
+		HORIZONTAL: UTF8			# ━  0xE2 0x94 0x81
+	}
+};
+
+
+
+fun initText(unicode: bool): void = {
+	ANSI.RESET  = "0m";
+	ANSI.BLACK  = "30m";
+	ANSI.RED    = "31m";
+	ANSI.GREEN  = "32m";
+	ANSI.YELLOW = "33m";
+	ANSI.BLUE   = "34m";
+	ANSI.PURPLE = "35m";
+	ANSI.CYAN   = "36m";
+	ANSI.WHITE  = "37m";
+	ANSI.UP     = "A";
+	ANSI.RIGHT  = "C";
+	ANSI.DOWN   = "B";
+	ANSI.LEFT   = "D";
+	ANSI.COL    = "G";
+	ANSI.SAVE   = "s";
+	ANSI.LOAD   = "u";
+	ANSI.CLEAR_LINE = "2K";
+	ANSI.CLEAR_SCREEN_FORWARD = "0J";
+	
+	if (unicode) then {
+		UNICODE.FULL_BLOCK = 14849672;
+		UNICODE.BOX.CORNER_TOP_LEFT = 14849167;
+		UNICODE.BOX.CORNER_TOP_RIGHT = 14849171;
+		UNICODE.BOX.CORNER_BOTTOM_LEFT = 14849175;
+		UNICODE.BOX.CORNER_BOTTOM_RIGHT = 14849179;
+		UNICODE.BOX.VERTICAL = 14849155;
+		UNICODE.BOX.HORIZONTAL = 14849153;
+		UNICODE.DASH = ('-':int)
+	} else {
+		UNICODE.FULL_BLOCK = ('#':int);
+		UNICODE.BOX.CORNER_TOP_LEFT = ('+':int);
+		UNICODE.BOX.CORNER_TOP_RIGHT = ('+':int);
+		UNICODE.BOX.CORNER_BOTTOM_LEFT = ('+':int);
+		UNICODE.BOX.CORNER_BOTTOM_RIGHT = ('+':int);
+		UNICODE.BOX.VERTICAL = ('|':int);
+		UNICODE.BOX.HORIZONTAL = ('-':int);
+		UNICODE.DASH = ('-':int)
+	}
+	
+};
+
+
+fun ansi(code: ANSICode): void = {
+	putChar((27:char));
+	putChar('[');
+	print(code)
+};
+
+
+fun ansi_n(n: int, code: ANSICode): void = {
+	putChar((27:char));
+	putChar('[');
+	printNum(n);
+	print(code)
+};
+
+
+fun ansi_moveCursor(x: int, y: int): void = {
+	if (x != 0) then {
+		if (x < 0) then
+			ansi_n(-x, ANSI.LEFT)
+		else
+			ansi_n(x, ANSI.RIGHT)
+	};
+	if (y != 0) then {
+		if (y < 0) then
+			ansi_n(-y, ANSI.UP)
+		else
+			ansi_n(y, ANSI.DOWN)
+	}
+};
+
+
+fun printUTF8(c: UTF8): void = {
+	if ((c/(256*256*256) : char) != (0:char)) then
+		putChar((c/(256*256*256) : char));
+	if ((c/(256*256) : char) != (0:char)) then
+		putChar((c/(256*256) : char));
+	if ((c/(256) : char) != (0:char)) then
+		putChar((c/(256) : char));
+	putChar((c:char))
+};
+
+
+# ================================================================================
+
+
+var cursor: {
+	x: int,
+	y: int
+};
+
+
+fun cursor_move(x: int, y: int): void = {
+	cursor.x = cursor.x + x;
+	cursor.y = cursor.y + y;
+	ansi_moveCursor(x, y)
+};
+
+
+fun cursor_set(x: int, y: int): void = {
+	ansi_moveCursor(x - cursor.x, y - cursor.y);
+	cursor.x = x;
+	cursor.y = y
+};
+
+
+# ================================================================================
+
+
+typ Block = {
+	color: int,
+	up:    ^Block,
+	right: ^Block,
+	down:  ^Block,
+	left:  ^Block
+};
+
+
+fun newBlock(): ^Block = {
+	let var b: ^Block; in {
+		b = new (Block);
+		b^.color = 0;
+		b^.up = (nil:^Block);
+		b^.left = (nil:^Block);
+		b^.down = (nil:^Block);
+		b^.right = (nil:^Block);
+		b
+	}
+};
+
+
+fun getFieldWidth(field: ^Block): int = {
+	let var i: int; in {
+		i = 0;
+		while (field != (nil:^Block)) do {
+			i = i + 1;
+			field = field^.right
+		};
+		i
+	}
+};
+
+
+fun getFieldHeight(field: ^Block): int = {
+	let var i: int; in {
+		i = 0;
+		while (field != (nil:^Block)) do {
+			i = i + 1;
+			field = field^.down
+		};
+		i
+	}
+};
+
+
+fun getBlock(field: ^Block, x: int, y: int): ^Block = {
+	# Go left
+	while (x < 0 & field != (nil:^Block)) do {
+		field = field^.left;
+		x = x + 1
+	};
+	# Go right
+	while (x > 0 & field != (nil:^Block)) do {
+		field = field^.right;
+		x = x - 1
+	};
+	# Go down
+	while (y > 0 & field != (nil:^Block)) do {
+		field = field^.down;
+		y = y - 1
+	};
+	# Go up
+	while (y < 0 & field != (nil:^Block)) do {
+		field = field^.up;
+		y = y - 1
+	};
+	field
+};
+
+
+fun createField(w: int, h: int): ^Block = {
+	let var
+		x: int,
+		y: int,
+		b: ^Block,
+		line: ^Block,
+		field: ^Block;
+	in {
+		field = newBlock();
+		line = field;
+		
+		x = 1;
+		b = line;
+		while (x < w) do {
+			b^.right = newBlock();
+			b^.right^.left = b;
+			b = b^.right;
+			x = x + 1
+		};
+		
+		y = 1;
+		while (y < h) do {
+			line^.down = newBlock();
+			line^.down^.up = line;
+			line = line^.down;
+			
+			x = 1;
+			b = line;
+			while (x < w) do {
+				b^.right = newBlock();
+				b^.right^.left = b;
+				b = b^.right;
+				b^.left^.up^.right^.down = b;
+				b^.up = b^.left^.up^.right;
+				x = x + 1
+			};
+			
+			y = y + 1
+		};
+		
+		field
+	}
+};
+
+
+fun destroyField(field: ^Block): void = {
+	let var b: ^Block, _b: ^Block; in {
+		while (field != (nil:^Block)) do {
+			b = field;
+			field = field^.down;
+			
+			while (b != (nil:^Block)) do {
+				_b = b;
+				b = b^.right;
+				del (_b)
+			}
+			
+		}
+	}
+};
+
+
+fun drawBlock(block: ^Block): void = {
+	if (block^.color > 0) then {
+		if (block^.color == 1) then
+			ansi(ANSI.WHITE)
+		else if (block^.color == 2) then
+			ansi(ANSI.YELLOW)
+		else if (block^.color == 3) then
+			ansi(ANSI.YELLOW)
+		else if (block^.color == 4) then
+			ansi(ANSI.BLUE)
+		else if (block^.color == 5) then
+			ansi(ANSI.PURPLE)
+		else if (block^.color == 6) then
+			ansi(ANSI.RED)
+		else if (block^.color == 7) then
+			ansi(ANSI.GREEN)
+		else
+			ansi(ANSI.WHITE);
+		
+		printUTF8(UNICODE.FULL_BLOCK);
+		printUTF8(UNICODE.FULL_BLOCK);
+		
+		ansi(ANSI.RESET)
+	} else {
+		putChar(' ');
+		putChar(' ')
+	}
+};
+
+
+fun drawField(field: ^Block): void = {
+	let var x:int, y:int, b:^Block; in {
+		y = 0;
+		
+		b = field;
+		while (b != (nil:^Block)) do {
+		
+			x = 0;
+			while (b != (nil:^Block)) do {
+				drawBlock(b);
+				b = b^.right;
+				x = x + 2
+			};
+			
+			ansi_moveCursor(-x, 1);
+			y = y + 1;
+			
+			field = field^.down;
+			b = field
+		};
+		
+		ansi_moveCursor(0, -y)
+	}
+};
+
+
+# ================================================================================
+
+
+typ Arena = {
+	w: int,
+	h: int,
+	player_h: int,
+	score: int,
+	field: ^Block,
+	shape: {
+		b: ^Block,
+		id: int,
+		rotation: int,
+		x: int,
+		y: int,
+		color: int
+	},
+	total_w: int,
+	total_h: int
+};
+
+
+fun drawBox(w: int, h: int): void = {
+	let var x: int, y: int; in {
+		
+		# Top bar
+		printUTF8(UNICODE.BOX.CORNER_TOP_LEFT);
+		x = 2;
+		while (x < w) do {
+			printUTF8(UNICODE.BOX.HORIZONTAL);
+			x = x + 1
+		};
+		printUTF8(UNICODE.BOX.CORNER_TOP_RIGHT);
+		ansi_moveCursor(-w, 1);
+		
+		# Side bars
+		y=h-2;
+		while (y > 0) do {
+			ansi(ANSI.CLEAR_LINE);
+			printUTF8(UNICODE.BOX.VERTICAL);
+			ansi_moveCursor(w-2, 0);
+			printUTF8(UNICODE.BOX.VERTICAL);
+			ansi_moveCursor(-w, 1);
+			y = y - 1
+		};
+		
+		# Bottom bar
+		printUTF8(UNICODE.BOX.CORNER_BOTTOM_LEFT);
+		x = 2;
+		while (x < w) do {
+			printUTF8(UNICODE.BOX.HORIZONTAL);
+			x = x + 1
+		};
+		printUTF8(UNICODE.BOX.CORNER_BOTTOM_RIGHT);
+		
+		ansi_moveCursor(-w, -h+1)
+	}
+};
+
+
+fun drawDashLine(w: int): void = {
+	let var x: int; in {
+		x = w;
+		while (w > 0) do {
+			printUTF8(UNICODE.DASH);
+			w = w - 1
+		};
+		ansi_moveCursor(-x,0)
+	}
+};
+
+
+fun createCanvas(arena: ^Arena): void = {
+	let var y: int, extra: int; in {
+		extra = 0;
+		
+		y = arena^.h + arena^.player_h + extra + 1;
+		while (y >= 0) do {
+			putChar((10:char));
+			y = y - 1
+		};
+		
+		ansi_moveCursor(0, -arena^.h - arena^.player_h - extra - 2)
+	}
+};
+
+
+fun drawArena(arena: ^Arena): void = {
+	cursor_set(0,0);
+	ansi(ANSI.CLEAR_SCREEN_FORWARD);
+	
+	ansi(ANSI.RED);
+	drawBox(arena^.w*2 + 2, arena^.h + arena^.player_h + 3);
+	ansi(ANSI.RESET);
+	
+	cursor_move(1, arena^.player_h + 1);
+	drawDashLine(arena^.w*2);
+	
+	cursor_move(0,1);
+	drawField(arena^.field);
+	
+	cursor_set(1, 4);
+	print("Score: ");
+	printNum(arena^.score);
+	ansi_n(0, ANSI.COL);
+	cursor.x = 0;
+	
+	cursor_set(arena^.shape.x * 2 + 1, arena^.shape.y + 1);
+	drawField(arena^.shape.b)
+};
+
+
+# ================================================================================
+
+
+fun colorizeShape(shape: ^Block, color: int): ^Block = {
+	let var b: ^Block, ret: ^Block; in {
+		ret = shape;
+		
+		while (shape != (nil:^Block)) do {
+			b = shape;
+			
+			while (shape != (nil:^Block)) do {
+				if (shape^.color != 0) then
+					shape^.color = color;
+				shape = shape^.right
+			};
+			
+			shape = b^.down
+		};
+		
+		ret
+	}
+};
+
+
+fun createShape(id: int, rotation: int): ^Block = {
+	let var shape: ^Block; in {
+		shape = (nil:^Block);
+		rotation = rotation % 4;
+		
+		# Square
+		if (id == 0) then {
+			shape = createField(2,2);
+			shape^.color = 1;
+			shape^.right^.color = 1;
+			shape^.down^.color = 1;
+			shape^.down^.right^.color = 1
+		}
+		
+		# Veritcal line
+		else if (id == 1) then {
+			if (rotation%2 == 0) then {
+				shape = createField(4,1);
+				shape^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.right^.color = 1;
+				shape^.right^.right^.right^.color = 1
+			} else {
+				shape = createField(1,4);
+				shape^.color = 1;
+				shape^.down^.color = 1;
+				shape^.down^.down^.color = 1;
+				shape^.down^.down^.down^.color = 1
+			}
+		}
+		
+		# L
+		else if (id == 2) then {
+			if (rotation == 0) then {
+				shape = createField(2,3);
+				shape^.color = 1;
+				shape^.down^.color = 1;
+				shape^.down^.down^.color = 1;
+				shape^.down^.down^.right^.color = 1
+			} else if (rotation == 1) then {
+				shape = createField(3,2);
+				shape^.down^.color = 1;
+				shape^.down^.right^.color = 1;
+				shape^.down^.right^.right^.color = 1;
+				shape^.down^.right^.right^.up^.color = 1
+			} else if (rotation == 2) then {
+				shape = createField(2,3);
+				shape^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.down^.color = 1;
+				shape^.right^.down^.down^.color = 1
+			} else {
+				shape = createField(3,2);
+				shape^.color = 1;
+				shape^.down^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.right^.color = 1
+			}
+		}
+		
+		# T
+		else if (id == 3) then {
+			if (rotation == 0) then {
+				shape = createField(3,3);
+				shape^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.right^.color = 1;
+				shape^.right^.down^.color = 1;
+				shape^.right^.down^.down^.color = 1
+			} else if (rotation == 1) then {
+				shape = createField(3,3);
+				shape^.color = 1;
+				shape^.down^.color = 1;
+				shape^.down^.down^.color = 1;
+				shape^.down^.right^.color = 1;
+				shape^.down^.right^.right^.color = 1
+			} else if (rotation == 2) then {
+				shape = createField(3,3);
+				shape^.down^.down^.color = 1;
+				shape^.down^.down^.right^.color = 1;
+				shape^.down^.down^.right^.right^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.down^.color = 1
+			} else {
+				shape = createField(3,3);
+				shape^.down^.color = 1;
+				shape^.down^.right^.color = 1;
+				shape^.down^.right^.right^.color = 1;
+				shape^.right^.right^.color = 1;
+				shape^.right^.right^.down^.down^.color = 1
+			}
+		}
+		
+		# Z
+		else if (id == 4) then {
+			if (rotation%2 == 0) then {
+				shape = createField(3,2);
+				shape^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.down^.color = 1;
+				shape^.right^.down^.right^.color = 1
+			} else {
+				shape = createField(2,3);
+				shape^.down^.color = 1;
+				shape^.down^.down^.color = 1;
+				shape^.right^.color = 1;
+				shape^.right^.down^.color = 1
+			}
+		};
+		
+		shape
+	}
+};
+
+# ================================================================================
+
+
+var settings: {
+	unicode: bool,
+	width: int,
+	height: int,
+	seed: int
+};
+
+
+fun rng(): int = {
+	# settings.seed = (1140671485 * settings.seed + 12820163) % 16777216;
+	settings.seed = (1103515245 * settings.seed + 12345) % 2147483648;
+	settings.seed
+};
+
+
+fun randomShapeId(): int = {
+	(rng() / 32) % 5
+};
+
+
+fun randomColor(): int = {
+	(rng() % 7) + 1
+};
+
+
+fun clamp(n: int, min: int, max: int): int = {
+	if (n < min) then
+		n = min
+	else if (n > max) then
+		n = max;
+	n
+};
+
+
+fun pow2(p: int): int = {
+	let var n: int; in {
+		n = 1;
+		while (p > 0) do {
+			n = n * 2;
+			p = p - 1
+		};
+		n
+	}
+};
+
+
+# ================================================================================
+
+
+var arena: Arena;
+var shapes: [5][4]^Block;
+
+
+fun setShape(id: int, rotation: int): void = {
+	arena.shape.id = id % 5;
+	arena.shape.rotation = rotation % 4;
+	arena.shape.b = shapes[arena.shape.id][arena.shape.rotation]
+};
+
+
+fun setRandomShape(): void = {
+	setShape(randomShapeId(), rng()%4);
+	arena.shape.color = randomColor();
+	colorizeShape(arena.shape.b, arena.shape.color);
+	arena.shape.x = (arena.w - getFieldWidth(arena.shape.b)) / 2;
+	arena.shape.y = (arena.player_h - getFieldHeight(arena.shape.b)) / 2
+};
+
+
+fun clampShape(): void = {
+	let var temp: int; in {
+		# Clamp x
+		if (arena.shape.x < 0) then
+			arena.shape.x = 0
+		else {
+			temp = getFieldWidth(arena.shape.b);
+			if ((arena.shape.x + temp) >= arena.w) then
+				arena.shape.x = arena.w - temp
+		};
+		
+		# Clamp y
+		if (arena.shape.y < 0) then
+			arena.shape.y = 0
+		else {
+			temp = getFieldHeight(arena.shape.b);
+			if ((arena.shape.y + temp) >= arena.player_h) then
+				arena.shape.y = arena.player_h - temp
+		}
+		
+	}
+};
+
+
+fun move(dx: int): void = {
+	arena.shape.x = arena.shape.x + dx;
+	clampShape()
+};
+
+
+fun rotate(r: int): void = {
+	arena.shape.rotation = (arena.shape.rotation + r) % 4;
+	arena.shape.b = shapes[arena.shape.id][arena.shape.rotation];
+	arena.shape.y = (arena.player_h - getFieldHeight(arena.shape.b)) / 2;
+	colorizeShape(arena.shape.b, arena.shape.color);
+	clampShape()
+};
+
+
+fun merge(field: ^Block, overlay: ^Block, x: int, y: int): void = {
+	let var
+		fx: ^Block,
+		bx: ^Block;
+	in {
+		fx = getBlock(field, x, y);
+		bx = overlay;
+		
+		while (bx != (nil:^Block) & fx != (nil:^Block)) do {
+			let var
+				fy: ^Block,
+				by: ^Block;
+			in {
+				fy = fx;
+				by = bx;
+				while (by != (nil:^Block) & fy != (nil:^Block)) do {
+					if (by^.color > 0) then
+						fy^.color = by^.color;
+					by = by^.down;
+					fy = fy^.down
+				}
+			};
+			
+			bx = bx^.right;
+			fx = fx^.right
+		}
+		
+	}
+};
+
+
+fun collapseLine(fy: ^Block): void = {
+	let var fx: ^Block; in {
+		while (fy != (nil:^Block)) do {
+			fx = fy;
+			
+			while (fx != (nil:^Block)) do {
+				if (fx^.up != (nil:^Block)) then
+					fx^.color = fx^.up^.color
+				else
+					fx^.color = 0;
+				fx = fx^.right
+			};
+			
+			fy = fy^.up
+		}
+	}
+};
+
+
+fun checkStack(field: ^Block): int = {
+	let var
+		fy: ^Block,
+		fx: ^Block,
+		n: int;
+	in {
+		fy = field;
+		n = 0;
+		
+		while (fy != (nil:^Block)) do {
+			fx = fy;
+			
+			while (fx != (nil:^Block) & fx^.color > 0) do {
+				# Solid line detected
+				if (fx^.right == (nil:^Block)) then {
+					collapseLine(fy);
+					n = n + 1
+				};
+				
+				fx = fx^.right
+			};
+			
+			fy = fy^.down
+		};
+		
+		n
+	}
+};
+
+
+fun drop(): bool = {
+	let var
+		y: int,
+		gameOver: bool;
+	in {
+		gameOver = false;
+		y = arena.h;
+		
+		# Get lowest y
+		let var
+			bx: ^Block,
+			fx: ^Block;
+		in {
+			bx = arena.shape.b;
+			fx = getBlock(arena.field, arena.shape.x, 0);
+			
+			# Horizontal loop
+			while (bx != (nil:^Block) & fx != (nil:^Block)) do {
+				let var
+					by: ^Block,
+					fy: ^Block,
+					_y: int;
+				in {
+					by = bx;
+					fy = fx;
+					_y = -1;
+					
+					# Move up
+					while (by^.down != (nil:^Block)) do {
+						by = by^.down;
+						_y = _y - 1
+					};
+					
+					# Move down to solid shape block
+					while (by^.color <= 0 & by^.up != (nil:^Block)) do {
+						by = by^.up;
+						_y = _y + 1
+					};
+					
+					# Move down until solid field block
+					while (fy != (nil:^Block) & fy^.color <= 0) do {
+						fy = fy^.down;
+						_y = _y + 1
+					};
+					
+					if (_y < y) then
+						y = _y
+				};
+				
+				bx = bx^.right;
+				fx = fx^.right
+			}
+			
+		};
+		
+		if (y >= 0) then {
+			merge(arena.field, arena.shape.b, arena.shape.x, y);
+			y = checkStack(arena.field);
+			arena.score = arena.score + (pow2(y) - 1);
+			setRandomShape()
+		} else {
+			gameOver = true
+		};
+		
+		!gameOver
+	}
+};
+
+
+fun getInput(): int = {
+	let var c: char, read: bool, status: int; in {
+		status = 0;
+		
+		read = true;
+		while (read) do {
+			c = getChar();
+			
+			if (status == 0) then {
+				
+				# Left, right, rorate, drop
+				if (c == 'a') then
+					move(-1)
+				else if (c == 'd') then
+					move(+1)
+				else if (c == 'w' | c == 'r') then
+					rotate(-1)
+				else if (c == 's') then {
+					if (!drop()) then
+						status = 2
+				} else if (c == 'u') then {
+					settings.unicode = !settings.unicode;
+					initText(settings.unicode)
+				} else if (c == 'q') then {
+					status = 1
+				}
+				
+			};
+			
+			# Cancel newline
+			if (c == (10:char)) then {
+				ansi_moveCursor(0, -1);
+				ansi(ANSI.CLEAR_LINE);
+				ansi_n(0, ANSI.COL);
+				read = false
+			}
+			
+		};
+		
+		status
+	}
+};
+
+
+# ================================================================================
+
+
+fun main(): void = {	
+	# Settings
+	let
+		var s: [64]char;
+		fun clearLine(): void = {
+			ansi_moveCursor(0,-1);
+			ansi(ANSI.CLEAR_LINE);
+			ansi_n(0, ANSI.COL)
+		};
+	in {
+		settings.unicode = true;
+		settings.seed = 11746727;
+		settings.width = 20;
+		settings.height = 6;
+		initText(settings.unicode);
+		
+		# Print help
+		println("Controls: 'q'-quit, 'a'-left, 'd'-right, 'w'-rotate, 'd'-drop, 'u'-unicode.");
+		
+		# Prompt settings change
+		print("Settings: UNICODE, w=20, h=6, seed=\"\". Change settings [y/N]? ");
+		readLine(^s[0], 16);
+		clearLine();
+		
+		if (s[0] == 'y') then {
+			
+			# Char mode
+			print("Unicode [Y/n]: ");
+			readLine(^s[0], 16);
+			settings.unicode = (s[0] != 'n');
+			initText(settings.unicode);
+			
+			clearLine();
+			
+			# Get w
+			print("Width [20]?: ");
+			settings.width = readNum();
+			if (settings.width == 0) then
+				settings.width = 20
+			else if (settings.width < 4) then
+				settings.width = 4;
+			
+			clearLine();
+			
+			# Get h
+			print("Height [6]?: ");
+			settings.height = readNum();
+			if (settings.height == 0) then
+				settings.height = 6
+			else if (settings.height < 2) then
+				settings.height = 2;
+			
+			clearLine();
+			
+			# Seed
+			print("Seed: ");
+			readLine(^s[0], 16);
+			
+			clearLine();
+			
+			# Scramble seed
+			let var p: ^char; in {
+				p = ^s[0];
+				settings.seed = 11746727;
+				while (p^ != (0:char)) do {
+					settings.seed = (settings.seed * (p^:int)) % 2147483648;
+					p = ((p:int) + 8 : ^char)
+				}
+			}
+			
+		};
+		
+		# Clear help
+		clearLine()
+	};
+	
+	
+	# # RNG test
+	# print("Seed: "); printNum(settings.seed); println("");
+	# let var i: int, n: int, sum: [10]int; in {
+	# 	i = 0;
+	# 	while (i < 10) do {
+	# 		sum[i] = 0;
+	# 		i = i + 1
+	# 	};
+		
+	# 	i = 100;
+	# 	while (i > 0) do {
+	# 		n = randomShapeId();
+	# 		# n = randomColor();
+	# 		sum[n] = sum[n] + 1;
+	# 		printNum(n); nl();
+	# 		i = i - 1
+	# 	};
+		
+	# 	nl();
+	# 	i = 0;
+	# 	while (i < 5) do {
+	# 		print("["); printNum(i); print("]: ");
+	# 		printNum(sum[i]); nl();
+	# 		i = i + 1
+	# 	}
+		
+	# };
+	
+	
+	cursor.x = 0;
+	cursor.y = 0;
+	
+	# Create all shapes
+	let var i: int, ii: int; in {
+		i = 0;
+		while (i < 5) do {
+			ii = 0;
+			while (ii < 4) do {
+				shapes[i][ii] = createShape(i,ii);
+				ii = ii + 1
+			};
+			i = i + 1
+		}
+	};
+	
+	# Initialize arena
+	arena.w = settings.width;
+	arena.h = settings.height;
+	arena.player_h = 4;
+	arena.score = 0;
+	arena.total_w = arena.w*2 + 2;
+	arena.total_h = arena.h + arena.player_h + 3;
+	arena.field = createField(arena.w, arena.h);
+	arena.shape.x = 0;
+	setRandomShape();
+	
+	# Initialize canvas
+	createCanvas(^arena);
+	drawArena(^arena);
+	
+	# Setup input area
+	cursor_set(0, arena.total_h - 1);
+	nl();
+	nl();
+	ansi_moveCursor(0,-2);
+	
+	
+	# Control loop
+	let var status: int; in {
+		status = 0;
+		while (status == 0) do {
+			cursor_set(0, arena.total_h);
+			status = getInput();
+			
+			if (status == 0) then {
+				drawArena(^arena)
+			} else if (status == 2) then {
+				drawArena(^arena);
+				cursor_set(0, arena.total_h);
+				println("Game over!")
+			}
+			
+		}
+	};
+	
+	
+	# Close
+	ansi_moveCursor(-100,100);
+	ansi(ANSI.RESET);
+	nl()
+};
