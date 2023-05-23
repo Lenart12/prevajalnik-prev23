@@ -63,6 +63,10 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
                 call_args_size += SemAn.isType.get(par.type).size();
             }
 
+            reserve_args(call_args_size);
+        }
+
+        public void reserve_args(long call_args_size) {
             args_size = Math.max(args_size, call_args_size);
         }
         
@@ -152,6 +156,20 @@ public class MemEvaluator extends AstFullVisitor<Object, MemEvaluator.MemScope> 
     public Object visit(AstCallExpr callExpr, MemScope scope) {
         scope.reserve_args(callExpr);
         super.visit(callExpr, scope);
+        return null;
+    }
+
+    @Override
+    public Object visit(AstNewExpr newExpr, MemScope scope) {
+        scope.reserve_args(/*SL*/8 + /*size*/8);
+        super.visit(newExpr, scope);
+        return null;
+    }
+
+    @Override
+    public Object visit(AstDelExpr delExpr, MemScope scope) {
+        scope.reserve_args(/*SL*/8 + /*ptr*/8);
+        super.visit(delExpr, scope);
         return null;
     }
 
